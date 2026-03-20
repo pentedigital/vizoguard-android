@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Newer versions require AGP 8.9.1+ / compileSdk 36; suppress until AGP upgrade -->
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- PNG fallback icons fill the square; only adaptive icons are used on API 26+ -->
+    <issue id="IconLauncherShape" severity="ignore" />
+</lint>
