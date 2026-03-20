@@ -60,6 +60,9 @@ dependencies {
     // QR scanning (GMS-free)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
+    // VPN tunnel (Outline tun2socks)
+    implementation(files("../libs/tun2socks.aar"))
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

@@ -10,10 +10,13 @@ import android.os.ParcelFileDescriptor
 import com.vizoguard.vpn.MainActivity
 import com.vizoguard.vpn.util.VizoLogger
 import kotlinx.coroutines.flow.MutableStateFlow
+import tun2socks.Tun2socks
+import tun2socks.Tunnel
 
 class ShadowsocksService : VpnService() {
 
     private var tunFd: ParcelFileDescriptor? = null
+    private var tunnel: Tunnel? = null
 
     companion object {
         private const val CHANNEL_ID = "vpn_status"
@@ -33,9 +36,11 @@ class ShadowsocksService : VpnService() {
             VpnManager.ACTION_CONNECT -> {
                 val host = intent.getStringExtra(VpnManager.EXTRA_HOST) ?: return START_NOT_STICKY
                 val port = intent.getIntExtra(VpnManager.EXTRA_PORT, 0)
+                val method = intent.getStringExtra(VpnManager.EXTRA_METHOD) ?: return START_NOT_STICKY
+                val password = intent.getStringExtra(VpnManager.EXTRA_PASSWORD) ?: return START_NOT_STICKY
                 val killSwitch = intent.getBooleanExtra(VpnManager.EXTRA_KILL_SWITCH, true)
                 startForeground(NOTIFICATION_ID, buildNotification("Connecting..."))
-                connect(host, port, killSwitch)
+                connect(host, port, method, password, killSwitch)
             }
             VpnManager.ACTION_DISCONNECT -> {
                 disconnect()
@@ -46,8 +51,8 @@ class ShadowsocksService : VpnService() {
         return START_STICKY
     }
 
-    private fun connect(host: String, port: Int, killSwitch: Boolean) {
-        VizoLogger.vpnState("SERVICE", "connect($host:$port)")
+    private fun connect(host: String, port: Int, method: String, password: String, killSwitch: Boolean) {
+        VizoLogger.vpnState("SERVICE", "connect($host:$port, cipher=$method)")
         try {
             val builder = Builder()
                 .setSession("Vizoguard VPN")
@@ -58,17 +63,28 @@ class ShadowsocksService : VpnService() {
                 .setMtu(1500)
 
             tunFd = builder.establish() ?: run {
+                VizoLogger.e("SERVICE", "VPN permission not granted")
                 serviceState.value = VpnState.ERROR
                 return
             }
 
-            // TODO: When tun2socks.aar is available, replace this stub with:
-            // tunnel = Tun2socks.connectSocksTunnel(tunFd!!.fd.toLong(), host, port.toLong(), true)
-            // For now, we simulate a successful connection
+            // Create Shadowsocks client via outline-sdk
+            val ssConfig = shadowsocks.Config().apply {
+                setHost(host)
+                setPort(port.toLong())
+                setCipherName(method)
+                setPassword(password)
+            }
+            val ssClient = shadowsocks.Shadowsocks.newClient(ssConfig)
 
+            // Connect tunnel: routes TUN fd traffic through Shadowsocks
+            tunnel = Tun2socks.connectShadowsocksTunnel(tunFd!!.fd.toLong(), ssClient, true)
+
+            VizoLogger.vpnState("SERVICE", "tunnel connected")
             updateNotification("Connected — Protected")
             serviceState.value = VpnState.CONNECTED
         } catch (e: Exception) {
+            VizoLogger.e("SERVICE", "connect failed", e)
             serviceState.value = VpnState.ERROR
             disconnect()
         }
@@ -77,11 +93,12 @@ class ShadowsocksService : VpnService() {
     private fun disconnect() {
         VizoLogger.vpnState("SERVICE", "disconnect")
         try {
-            // TODO: tunnel?.disconnect() when tun2socks is available
+            tunnel?.disconnect()
+            tunnel = null
             tunFd?.close()
             tunFd = null
         } catch (e: Exception) {
-            // Ignore cleanup errors
+            VizoLogger.e("SERVICE", "disconnect error", e)
         }
     }
 
