@@ -1,0 +1,18 @@
+package com.vizoguard.vpn.vpn
+
+enum class VpnState {
+    IDLE, LICENSED, CONNECTING, CONNECTED, RECONNECTING, BLOCKED, ERROR
+}
+
+data class ShadowsocksConfig(
+    val host: String,
+    val port: Int,
+    val method: String,
+    val password: String
+)
+
+data class VpnStatus(
+    val state: VpnState = VpnState.IDLE,
+    val errorMessage: String? = null,
+    val connectedSince: Long? = null
+)
