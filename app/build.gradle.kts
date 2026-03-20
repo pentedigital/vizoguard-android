@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.vizoguard.vpn"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.vizoguard.vpn"
@@ -41,7 +41,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.activity:activity-compose:1.10.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Networking
