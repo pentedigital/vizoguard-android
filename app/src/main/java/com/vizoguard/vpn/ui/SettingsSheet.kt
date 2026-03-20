@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,13 +32,26 @@ fun SettingsSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Surface, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .background(GlassSurface)
+            .background(Surface.copy(alpha = 0.92f))
             .padding(24.dp)
     ) {
+        // Drag handle indicator
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(bottom = 12.dp)
+                .width(40.dp)
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(Border)
+        )
+
         Text(
             "Settings",
             color = TextPrimary,
-            fontSize = 18.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.clickable {
                 tapCount++
@@ -47,18 +61,19 @@ fun SettingsSheet(
                 }
             }
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
 
         SettingRow("Auto-connect", autoConnect, onAutoConnectChange)
-        HorizontalDivider(color = Border)
+        PremiumDivider()
         SettingRow("Kill switch", killSwitch, onKillSwitchChange)
-        HorizontalDivider(color = Border)
+        PremiumDivider()
         SettingRow("Notifications", notifications, onNotificationsChange)
-        HorizontalDivider(color = Border)
+        PremiumDivider()
 
         // License info
-        Spacer(Modifier.height(12.dp))
-        Text("License", color = TextSecondary, fontSize = 13.sp)
+        Spacer(Modifier.height(16.dp))
+        Text("License", color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
         Text(
             licenseKey?.let { LicenseManager.maskKey(it) } ?: "Not activated",
             color = TextSecondary,
@@ -70,11 +85,11 @@ fun SettingsSheet(
         if (expiresAt != null) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Expires", color = TextSecondary, fontSize = 13.sp)
-                Text(expiresAt.take(10), color = Accent, fontSize = 13.sp)
+                Text(expiresAt.take(10), color = Accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(28.dp))
         TextButton(
             onClick = onSignOut,
             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -83,13 +98,22 @@ fun SettingsSheet(
 }
 
 @Composable
+private fun PremiumDivider() {
+    HorizontalDivider(
+        color = GlassBorder,
+        thickness = 0.5.dp,
+        modifier = Modifier.padding(vertical = 2.dp)
+    )
+}
+
+@Composable
 private fun SettingRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextPrimary, fontSize = 14.sp)
+        Text(label, color = TextPrimary, fontSize = 15.sp)
         Switch(
             checked = checked,
             onCheckedChange = onToggle,

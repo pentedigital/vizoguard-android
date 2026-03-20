@@ -34,7 +34,10 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
                 null
             } else {
                 _status.value.connectedSince
-            }
+            },
+            serverLocation = _status.value.serverLocation,
+            encryptionMethod = _status.value.encryptionMethod,
+            serverHost = _status.value.serverHost
         )
     }
 
@@ -43,6 +46,13 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
             updateState(VpnState.ERROR, "Invalid VPN configuration")
             return
         }
+
+        // Store server info in status before connecting
+        _status.value = _status.value.copy(
+            serverHost = config.host,
+            encryptionMethod = config.method
+        )
+
         updateState(VpnState.CONNECTING)
         val intent = Intent(context, ShadowsocksService::class.java).apply {
             action = ACTION_CONNECT

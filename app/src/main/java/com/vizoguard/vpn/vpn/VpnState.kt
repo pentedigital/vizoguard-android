@@ -14,5 +14,8 @@ data class ShadowsocksConfig(
 data class VpnStatus(
     val state: VpnState = VpnState.IDLE,
     val errorMessage: String? = null,
-    val connectedSince: Long? = null
+    val connectedSince: Long? = null,
+    val serverLocation: String? = null,
+    val encryptionMethod: String? = null,
+    val serverHost: String? = null
 )

@@ -13,6 +13,16 @@ val TextSecondary = Color(0xFF999999)
 val Red = Color(0xFFFF3B3B)
 val Border = Color(0xFF222222)
 
+// Premium colors
+val Amber = Color(0xFFFFBB33)
+val TealGlow = Color(0xFF00E5A0)
+val GlassSurface = Color(0x1AFFFFFF)
+val GlassBorder = Color(0x33FFFFFF)
+val SubtleTeal = Color(0x1A00E5A0)
+val AmberSubtle = Color(0x1AFFBB33)
+val RedSubtle = Color(0x1AFF3B3B)
+val GlassSurfaceDark = Color(0x0DFFFFFF)
+
 private val DarkColorScheme = darkColorScheme(
     primary = Accent,
     secondary = Teal,
