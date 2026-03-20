@@ -17,8 +17,15 @@ export ANDROID_HOME="$HOME/AppData/Local/Android/Sdk"
 
 ./gradlew assembleDebug      # Build
 ./gradlew lintDebug           # Lint (0 warnings expected)
-./gradlew testDebugUnitTest   # Unit tests (16 tests)
+./gradlew testDebugUnitTest   # Unit tests (28 tests)
 ./gradlew installDebug        # Install on emulator/device
+```
+
+Useful dev commands:
+```bash
+./gradlew testDebugUnitTest --tests "com.vizoguard.vpn.**.<TestClass>"  # Single test class
+adb logcat -s SYSTEM:V SERVICE:V API:V LICENSE:V  # Filter app logs (VizoLogger tags)
+./gradlew assembleRelease      # Release APK (requires signing config)
 ```
 
 Emulator:
@@ -71,6 +78,6 @@ All source under `app/src/main/java/com/vizoguard/vpn/`:
 - GitHub CLI: `gh` installed, authenticated as `pentedigital`
 
 ## Claude Automations
-- **Skills**: `/build-test`, `/deploy-emulator`, `/run-tests`, `/release-apk`
-- **Subagents**: `security-reviewer`, `android-reviewer`
-- **Hooks**: Credential/key file edit guard (PreToolUse), related test suggestion on source edit (PostToolUse)
+- **Skills**: `/build-test`, `/deploy-emulator`, `/run-tests`, `/release-apk`, `/gen-test`, `/api-check`
+- **Subagents**: `security-reviewer`, `android-reviewer`, `test-coverage-analyzer`, `proguard-checker`
+- **Hooks**: Credential/key file edit guard (PreToolUse), tun2socks.aar deletion guard (PreToolUse), related test suggestion on source edit (PostToolUse), lint suggestion on Kotlin edit (PostToolUse)
