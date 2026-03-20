@@ -3,7 +3,7 @@ package com.vizoguard.vpn.vpn
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
-import android.util.Base64
+import java.util.Base64
 import com.vizoguard.vpn.util.VizoLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,7 +82,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
                 val encoded = withoutScheme.substring(0, atIndex)
                 val hostPort = withoutScheme.substring(atIndex + 1).split("/?")[0]
 
-                val decoded = String(Base64.decode(encoded, Base64.DEFAULT))
+                val decoded = String(Base64.getDecoder().decode(encoded))
                 val colonIndex = decoded.indexOf(':')
                 if (colonIndex == -1) return null
 

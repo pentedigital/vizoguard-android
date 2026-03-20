@@ -4,7 +4,9 @@ import android.content.Context
 import android.util.Log
 import java.io.File
 import java.io.FileWriter
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 object VizoLogger {
@@ -12,7 +14,8 @@ object VizoLogger {
     private const val MAX_FILES = 3
     private var logDir: File? = null
     private var isDebug = true
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+        .withZone(ZoneId.systemDefault())
     private var sessionId = UUID.randomUUID().toString().take(8)
 
     fun init(context: Context, debug: Boolean = true) {
@@ -40,7 +43,7 @@ object VizoLogger {
     fun systemEvent(event: String) = i("SYSTEM", event)
 
     private fun log(level: String, tag: String, message: String) {
-        val timestamp = dateFormat.format(Date())
+        val timestamp = dateFormat.format(Instant.now())
         val line = "[$timestamp] [$sessionId] [$level] [$tag] $message"
 
         // Logcat (debug builds only)

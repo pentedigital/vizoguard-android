@@ -104,7 +104,7 @@ class ShadowsocksService : VpnService() {
 
     override fun onDestroy() {
         disconnect()
-        serviceState.value = VpnState.LICENSED
+        serviceState.value = VpnState.IDLE
         super.onDestroy()
     }
 

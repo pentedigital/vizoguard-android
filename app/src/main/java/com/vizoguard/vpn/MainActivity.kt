@@ -16,6 +16,7 @@ import com.vizoguard.vpn.ui.theme.VizoguardTheme
 import com.vizoguard.vpn.util.LogExporter
 import com.vizoguard.vpn.vpn.VpnState
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
     private var pendingVpnConnect: (() -> Unit)? = null

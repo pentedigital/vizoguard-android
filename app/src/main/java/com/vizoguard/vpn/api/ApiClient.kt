@@ -8,12 +8,14 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable data class LicenseResponse(val valid: Boolean, val status: String, val expires: String)
 @Serializable data class VpnResponse(@SerialName("access_url") val accessUrl: String)
 @Serializable data class ErrorResponse(val error: String, val status: String = "")
 @Serializable data class HealthResponse(val status: String)
+@Serializable data class LicenseRequest(val key: String, @SerialName("device_id") val deviceId: String)
 
 class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
 
@@ -25,7 +27,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
         return try {
             val response = client.post("$baseUrl/license") {
                 contentType(ContentType.Application.Json)
-                setBody("""{"key":"$key","device_id":"$deviceId"}""")
+                setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
             VizoLogger.apiCall("/license", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
@@ -44,7 +46,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
         return try {
             val response = client.post("$baseUrl/vpn/create") {
                 contentType(ContentType.Application.Json)
-                setBody("""{"key":"$key","device_id":"$deviceId"}""")
+                setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
             VizoLogger.apiCall("/vpn/create", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
@@ -63,7 +65,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
         return try {
             val response = client.post("$baseUrl/vpn/get") {
                 contentType(ContentType.Application.Json)
-                setBody("""{"key":"$key","device_id":"$deviceId"}""")
+                setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
             VizoLogger.apiCall("/vpn/get", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
