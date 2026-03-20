@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "node -e \"const input = process.env.CLAUDE_TOOL_INPUT || ''; if (/\\.(env|keystore|jks|key|pem|p12)/.test(input)) { console.error('BLOCKED: Cannot edit sensitive file (credentials/keys). Confirm manually.'); process.exit(1); }\""
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(JAVA_HOME=*)",
+      "Bash(export JAVA_HOME=*)",
+      "Bash(export ANDROID_HOME=*)",
+      "Bash(cd *)",
+      "Bash(git *)",
+      "Bash(./gradlew *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(mkdir *)"
+    ]
+  }
+}
