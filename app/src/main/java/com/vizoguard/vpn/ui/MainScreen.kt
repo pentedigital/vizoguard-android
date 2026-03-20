@@ -270,7 +270,7 @@ fun MainScreen(
                         isReconnecting -> Amber
                         isError || isBlocked -> Red
                         isBusy -> Amber
-                        else -> Red
+                        else -> TextSecondary
                     },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium

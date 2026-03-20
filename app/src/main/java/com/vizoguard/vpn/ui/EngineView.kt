@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import com.vizoguard.vpn.ui.theme.*
 import com.vizoguard.vpn.vpn.VpnStatus
 import kotlinx.coroutines.delay
-import kotlin.random.Random
 
 @Composable
 fun EngineView(
@@ -30,24 +29,6 @@ fun EngineView(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Simulated trackers blocked
-    var trackersBlocked by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val waitTime = Random.nextLong(5000L, 15001L)
-            delay(waitTime)
-            trackersBlocked++
-        }
-    }
-
-    // Data transferred (simulated)
-    val dataKb = elapsedSeconds * 12
-    val dataDisplay = if (dataKb >= 1024) {
-        "%.1f MB".format(dataKb / 1024.0)
-    } else {
-        "$dataKb KB"
-    }
-
     // "What Just Happened?" rotating messages
     val messages = listOf(
         "Your real IP address is hidden from websites",
@@ -55,7 +36,8 @@ fun EngineView(
         "DNS queries are private and secure"
     )
     var messageIndex by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(expanded) {
+        if (!expanded) return@LaunchedEffect
         while (true) {
             delay(4000L)
             messageIndex = (messageIndex + 1) % messages.size
@@ -144,18 +126,6 @@ fun EngineView(
                     icon = "[M]",
                     label = "IP Masked",
                     value = "Yes"
-                )
-                Spacer(Modifier.height(8.dp))
-                EngineStatRow(
-                    icon = "[D]",
-                    label = "Data",
-                    value = dataDisplay
-                )
-                Spacer(Modifier.height(8.dp))
-                EngineStatRow(
-                    icon = "[B]",
-                    label = "Blocked",
-                    value = "$trackersBlocked trackers"
                 )
                 Spacer(Modifier.height(8.dp))
                 EngineStatRow(

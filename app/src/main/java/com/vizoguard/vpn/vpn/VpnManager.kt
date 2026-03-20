@@ -47,13 +47,12 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
             return
         }
 
-        // Store server info in status before connecting
+        // Atomic update: set server info and state together to avoid race
         _status.value = _status.value.copy(
+            state = VpnState.CONNECTING,
             serverHost = config.host,
             encryptionMethod = config.method
         )
-
-        updateState(VpnState.CONNECTING)
         val intent = Intent(context, ShadowsocksService::class.java).apply {
             action = ACTION_CONNECT
             putExtra(EXTRA_HOST, config.host)

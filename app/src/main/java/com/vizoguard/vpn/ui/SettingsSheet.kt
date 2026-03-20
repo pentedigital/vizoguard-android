@@ -33,8 +33,7 @@ fun SettingsSheet(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(GlassSurface)
-            .background(Surface.copy(alpha = 0.92f))
+            .background(Surface.copy(alpha = 0.95f))
             .padding(24.dp)
     ) {
         // Drag handle indicator
