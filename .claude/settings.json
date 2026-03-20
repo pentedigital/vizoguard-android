@@ -5,6 +5,12 @@
         "matcher": "Edit|Write",
         "command": "node -e \"const input = process.env.CLAUDE_TOOL_INPUT || ''; if (/\\.(env|keystore|jks|key|pem|p12)/.test(input)) { console.error('BLOCKED: Cannot edit sensitive file (credentials/keys). Confirm manually.'); process.exit(1); }\""
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "command": "node -e \"const input = process.env.CLAUDE_TOOL_INPUT || ''; const m = input.match(/app\\/src\\/main\\/.*\\.kt/); if (m) { const f = m[0]; const map = {'AppState.kt':'AppStateTest','ApiClient.kt':'ApiClientTest','LicenseManager.kt':'LicenseManagerTest','SecureStore.kt':'SecureStoreTest','VpnManager.kt':'VpnManagerTest'}; const base = f.split('/').pop(); const test = map[base]; if (test) { console.log('SUGGESTION: Run related test — ./gradlew testDebugUnitTest --tests \\\"com.vizoguard.vpn.**.' + test + '\\\"'); } }\""
+      }
     ]
   },
   "permissions": {
