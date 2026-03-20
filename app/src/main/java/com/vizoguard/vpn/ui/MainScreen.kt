@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.vizoguard.vpn.ui.theme.*
 import com.vizoguard.vpn.vpn.VpnState
 import com.vizoguard.vpn.vpn.VpnStatus
+import kotlinx.coroutines.delay
 
 @Composable
 fun MainScreen(
@@ -28,6 +29,19 @@ fun MainScreen(
     onSettingsClick: () -> Unit
 ) {
     val isConnected = vpnStatus.state == VpnState.CONNECTED
+
+    // Elapsed seconds since connection, updated every second to drive recomposition
+    var elapsedSeconds by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(isConnected, vpnStatus.connectedSince) {
+        if (isConnected && vpnStatus.connectedSince != null) {
+            while (true) {
+                elapsedSeconds = (System.currentTimeMillis() - vpnStatus.connectedSince) / 1000
+                delay(1000L)
+            }
+        } else {
+            elapsedSeconds = 0L
+        }
+    }
     val isConnecting = vpnStatus.state == VpnState.CONNECTING || vpnStatus.state == VpnState.RECONNECTING
     val borderColor by animateColorAsState(
         when {
@@ -109,7 +123,7 @@ fun MainScreen(
             StatCard("Status", if (isConnected) "Connected" else "Disconnected")
             Spacer(Modifier.width(12.dp))
             StatCard("Duration", if (isConnected && vpnStatus.connectedSince != null) {
-                formatDuration(System.currentTimeMillis() - vpnStatus.connectedSince)
+                formatDuration(elapsedSeconds)
             } else "--:--")
         }
 
@@ -150,10 +164,9 @@ private fun StatCard(label: String, value: String) {
     }
 }
 
-private fun formatDuration(ms: Long): String {
-    val s = ms / 1000
-    val h = s / 3600
-    val m = (s % 3600) / 60
-    val sec = s % 60
-    return "%02d:%02d:%02d".format(h, m, sec)
+private fun formatDuration(totalSeconds: Long): String {
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return "%02d:%02d:%02d".format(h, m, s)
 }
