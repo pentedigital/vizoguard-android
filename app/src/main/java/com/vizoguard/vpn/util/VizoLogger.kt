@@ -13,10 +13,13 @@ object VizoLogger {
     private var logDir: File? = null
     private var isDebug = true
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
+    private var sessionId = UUID.randomUUID().toString().take(8)
 
     fun init(context: Context, debug: Boolean = true) {
         logDir = File(context.filesDir, "logs").also { it.mkdirs() }
         isDebug = debug
+        sessionId = UUID.randomUUID().toString().take(8)
+        i("SYSTEM", "Session started: $sessionId")
     }
 
     fun d(tag: String, message: String) = log("D", tag, message)
@@ -38,7 +41,7 @@ object VizoLogger {
 
     private fun log(level: String, tag: String, message: String) {
         val timestamp = dateFormat.format(Date())
-        val line = "[$timestamp] [$level] [$tag] $message"
+        val line = "[$timestamp] [$sessionId] [$level] [$tag] $message"
 
         // Logcat (debug builds only)
         if (isDebug) {
