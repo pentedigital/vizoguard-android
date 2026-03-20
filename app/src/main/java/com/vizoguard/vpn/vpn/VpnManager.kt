@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.util.Base64
+import com.vizoguard.vpn.util.VizoLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
     }
 
     fun updateState(state: VpnState, errorMessage: String? = null) {
+        VizoLogger.vpnState(_status.value.state.name, state.name)
         _status.value = VpnStatus(
             state = state,
             errorMessage = errorMessage,

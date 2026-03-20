@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import com.vizoguard.vpn.MainActivity
+import com.vizoguard.vpn.util.VizoLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class ShadowsocksService : VpnService() {
@@ -46,6 +47,7 @@ class ShadowsocksService : VpnService() {
     }
 
     private fun connect(host: String, port: Int, killSwitch: Boolean) {
+        VizoLogger.vpnState("SERVICE", "connect($host:$port)")
         try {
             val builder = Builder()
                 .setSession("Vizoguard VPN")
@@ -73,6 +75,7 @@ class ShadowsocksService : VpnService() {
     }
 
     private fun disconnect() {
+        VizoLogger.vpnState("SERVICE", "disconnect")
         try {
             // TODO: tunnel?.disconnect() when tun2socks is available
             tunFd?.close()

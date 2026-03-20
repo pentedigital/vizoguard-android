@@ -1,0 +1,95 @@
+package com.vizoguard.vpn.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.vizoguard.vpn.ui.theme.*
+import com.vizoguard.vpn.util.LogExporter
+import com.vizoguard.vpn.util.VizoLogger
+import com.vizoguard.vpn.vpn.VpnStatus
+
+@Composable
+fun DebugScreen(
+    vpnStatus: VpnStatus,
+    licenseKey: String?,
+    licenseStatus: String?,
+    licenseExpiry: String?,
+    vpnAccessUrl: String?,
+    onExportLogs: () -> Unit,
+    onClearLogs: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val logText = remember { VizoLogger.getAllLogText(context) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(16.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Debug", color = Accent, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            TextButton(onClick = onDismiss) { Text("Close", color = TextSecondary) }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // State info
+        DebugRow("VPN State", vpnStatus.state.name)
+        DebugRow("Error", vpnStatus.errorMessage ?: "none")
+        DebugRow("License", licenseKey?.take(9)?.plus("...") ?: "none")
+        DebugRow("Status", licenseStatus ?: "none")
+        DebugRow("Expires", licenseExpiry?.take(10) ?: "none")
+        DebugRow("VPN URL", if (vpnAccessUrl != null) "cached (${vpnAccessUrl.length} chars)" else "none")
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onExportLogs, colors = ButtonDefaults.buttonColors(containerColor = Accent)) {
+                Text("Export Logs", color = Surface, fontSize = 12.sp)
+            }
+            OutlinedButton(onClick = onClearLogs) {
+                Text("Clear Logs", fontSize = 12.sp)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Log viewer
+        Text("Recent Logs", color = TextSecondary, fontSize = 12.sp)
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(Surface, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                .padding(8.dp)
+        ) {
+            Text(
+                text = logText.takeLast(5000),
+                color = TextSecondary,
+                fontSize = 9.sp,
+                fontFamily = FontFamily.Monospace,
+                lineHeight = 13.sp,
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            )
+        }
+    }
+}
+
+@Composable
+private fun DebugRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = TextSecondary, fontSize = 11.sp)
+        Text(value, color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    }
+}

@@ -2,6 +2,7 @@ package com.vizoguard.vpn.license
 
 import com.vizoguard.vpn.api.ApiClient
 import com.vizoguard.vpn.api.ApiException
+import com.vizoguard.vpn.util.VizoLogger
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -43,7 +44,9 @@ class LicenseManager(
             store.saveVpnAccessUrl(vpnResult.getOrThrow().accessUrl)
         }
 
-        return Result.success(getCachedState())
+        val state = getCachedState()
+        VizoLogger.licenseEvent("activate: ${state.status}")
+        return Result.success(state)
     }
 
     suspend fun validate(): Result<LicenseState> {
@@ -59,7 +62,9 @@ class LicenseManager(
                 store.saveFirstFailureTimestamp(System.currentTimeMillis())
             }
         }
-        return Result.success(getCachedState())
+        val state = getCachedState()
+        VizoLogger.licenseEvent("validate: ${state.status}")
+        return Result.success(state)
     }
 
     fun canConnectOffline(): Boolean {

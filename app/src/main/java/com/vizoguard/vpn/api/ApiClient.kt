@@ -1,5 +1,6 @@
 package com.vizoguard.vpn.api
 
+import com.vizoguard.vpn.util.VizoLogger
 import io.ktor.client.*
 import io.ktor.client.engine.android.*
 import io.ktor.client.request.*
@@ -26,6 +27,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"key":"$key","device_id":"$deviceId"}""")
             }
+            VizoLogger.apiCall("/license", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseLicenseResponse(response.bodyAsText()))
             } else {
@@ -33,6 +35,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
         } catch (e: Exception) {
+            VizoLogger.apiCall("/license", false)
             Result.failure(e)
         }
     }
@@ -43,6 +46,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"key":"$key","device_id":"$deviceId"}""")
             }
+            VizoLogger.apiCall("/vpn/create", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseVpnResponse(response.bodyAsText()))
             } else {
@@ -50,6 +54,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
         } catch (e: Exception) {
+            VizoLogger.apiCall("/vpn/create", false)
             Result.failure(e)
         }
     }
@@ -60,6 +65,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"key":"$key","device_id":"$deviceId"}""")
             }
+            VizoLogger.apiCall("/vpn/get", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseVpnResponse(response.bodyAsText()))
             } else {
@@ -67,6 +73,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
         } catch (e: Exception) {
+            VizoLogger.apiCall("/vpn/get", false)
             Result.failure(e)
         }
     }
@@ -74,8 +81,10 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
     suspend fun checkHealth(): Result<HealthResponse> {
         return try {
             val response = client.get("$baseUrl/health")
+            VizoLogger.apiCall("/health", response.status.isSuccess(), response.status.value)
             Result.success(parseHealthResponse(response.bodyAsText()))
         } catch (e: Exception) {
+            VizoLogger.apiCall("/health", false)
             Result.failure(e)
         }
     }
@@ -83,8 +92,10 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
     suspend fun checkVpnStatus(): Result<HealthResponse> {
         return try {
             val response = client.get("$baseUrl/vpn/status")
+            VizoLogger.apiCall("/vpn/status", response.status.isSuccess(), response.status.value)
             Result.success(parseHealthResponse(response.bodyAsText()))
         } catch (e: Exception) {
+            VizoLogger.apiCall("/vpn/status", false)
             Result.failure(e)
         }
     }

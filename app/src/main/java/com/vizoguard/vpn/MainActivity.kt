@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.ui.*
 import com.vizoguard.vpn.ui.theme.VizoguardTheme
+import com.vizoguard.vpn.util.LogExporter
 import com.vizoguard.vpn.vpn.VpnState
 
 class MainActivity : ComponentActivity() {
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
                 val isLoading by appState.isLoading.collectAsState()
                 val errorMessage by appState.errorMessage.collectAsState()
                 var showSettings by remember { mutableStateOf(false) }
+                var showDebug by remember { mutableStateOf(false) }
                 val store = appState.licenseManager.getCachedState()
 
                 when (screen) {
@@ -76,9 +78,28 @@ class MainActivity : ComponentActivity() {
                                     onAutoConnectChange = { appState.getStore().saveAutoConnect(it) },
                                     onKillSwitchChange = { appState.getStore().saveKillSwitch(it) },
                                     onNotificationsChange = { appState.getStore().saveNotifications(it) },
-                                    onSignOut = { showSettings = false; appState.signOut() }
+                                    onSignOut = { showSettings = false; appState.signOut() },
+                                    onOpenDebug = { showSettings = false; showDebug = true }
                                 )
                             }
+                        }
+
+                        if (showDebug) {
+                            DebugScreen(
+                                vpnStatus = vpnStatus,
+                                licenseKey = store.key,
+                                licenseStatus = store.status,
+                                licenseExpiry = store.expires,
+                                vpnAccessUrl = store.vpnAccessUrl,
+                                onExportLogs = {
+                                    val shareIntent = LogExporter.exportLogs(this@MainActivity)
+                                    if (shareIntent != null) startActivity(Intent.createChooser(shareIntent, "Share Logs"))
+                                },
+                                onClearLogs = {
+                                    com.vizoguard.vpn.util.VizoLogger.clearLogs()
+                                },
+                                onDismiss = { showDebug = false }
+                            )
                         }
                     }
                 }

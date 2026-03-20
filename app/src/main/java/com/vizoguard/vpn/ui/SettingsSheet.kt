@@ -1,6 +1,7 @@
 package com.vizoguard.vpn.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,15 +24,29 @@ fun SettingsSheet(
     onAutoConnectChange: (Boolean) -> Unit,
     onKillSwitchChange: (Boolean) -> Unit,
     onNotificationsChange: (Boolean) -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onOpenDebug: (() -> Unit)? = null
 ) {
+    var tapCount by remember { mutableIntStateOf(0) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Surface, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .padding(24.dp)
     ) {
-        Text("Settings", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Settings",
+            color = TextPrimary,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable {
+                tapCount++
+                if (tapCount >= 5) {
+                    tapCount = 0
+                    onOpenDebug?.invoke()
+                }
+            }
+        )
         Spacer(Modifier.height(16.dp))
 
         SettingRow("Auto-connect", autoConnect, onAutoConnectChange)
