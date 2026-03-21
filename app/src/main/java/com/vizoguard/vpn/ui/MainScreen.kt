@@ -15,6 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -200,7 +204,15 @@ fun MainScreen(
                             color = borderColor,
                             shape = CircleShape
                         )
-                        .clickable(enabled = !isBusy) { onToggle() },
+                        .clickable(enabled = !isBusy) { onToggle() }
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = when {
+                                isConnected -> "Disconnect VPN"
+                                isBusy -> "VPN connecting"
+                                else -> "Connect to VPN"
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -312,7 +324,7 @@ fun MainScreen(
                 OutlinedButton(
                     onClick = onToggle,
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Disable Kill Switch") }
+                ) { Text("Reconnect") }
                 Spacer(Modifier.height(12.dp))
             }
 
@@ -331,8 +343,9 @@ fun MainScreen(
 }
 
 internal fun formatDuration(totalSeconds: Long): String {
-    val h = totalSeconds / 3600
-    val m = (totalSeconds % 3600) / 60
-    val s = totalSeconds % 60
+    val t = totalSeconds.coerceAtLeast(0L)
+    val h = t / 3600
+    val m = (t % 3600) / 60
+    val s = t % 60
     return "%02d:%02d:%02d".format(h, m, s)
 }

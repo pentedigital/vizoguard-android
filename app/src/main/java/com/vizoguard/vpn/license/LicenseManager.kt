@@ -2,6 +2,7 @@ package com.vizoguard.vpn.license
 
 import com.vizoguard.vpn.api.ApiClient
 import com.vizoguard.vpn.api.ApiException
+import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -33,15 +34,22 @@ class LicenseManager(
         if (licenseResult.isFailure) return Result.failure(licenseResult.exceptionOrNull()!!)
 
         val license = licenseResult.getOrThrow()
-        store.saveLicenseKey(key)
-        store.saveLicenseStatus(license.status)
-        store.saveLicenseExpiry(license.expires)
+        store.saveLicenseData(key, license.status, license.expires)
         store.clearFirstFailureTimestamp()
 
-        // Provision VPN key
+        // Provision VPN key — try create, fall back to get
         val vpnResult = api.createVpnKey(key, deviceId)
         if (vpnResult.isSuccess) {
             store.saveVpnAccessUrl(vpnResult.getOrThrow().accessUrl)
+        } else {
+            VizoLogger.w(Tag.LICENSE, "createVpnKey failed, trying getVpnKey", vpnResult.exceptionOrNull())
+            val fallback = api.getVpnKey(key, deviceId)
+            if (fallback.isSuccess) {
+                VizoLogger.i(Tag.LICENSE, "getVpnKey fallback succeeded")
+                store.saveVpnAccessUrl(fallback.getOrThrow().accessUrl)
+            } else {
+                VizoLogger.e(Tag.LICENSE, "VPN key provisioning failed (both create and get)", fallback.exceptionOrNull())
+            }
         }
 
         val state = getCachedState()
@@ -57,14 +65,16 @@ class LicenseManager(
             store.saveLicenseStatus(license.status)
             store.saveLicenseExpiry(license.expires)
             store.clearFirstFailureTimestamp()
+            val state = getCachedState()
+            VizoLogger.licenseEvent("validate: ${state.status}")
+            return Result.success(state)
         } else {
             if (store.getFirstFailureTimestamp() == null) {
                 store.saveFirstFailureTimestamp(System.currentTimeMillis())
             }
+            VizoLogger.licenseEvent("validate: failed (${result.exceptionOrNull()?.message})")
+            return Result.failure(result.exceptionOrNull()!!)
         }
-        val state = getCachedState()
-        VizoLogger.licenseEvent("validate: ${state.status}")
-        return Result.success(state)
     }
 
     fun canConnectOffline(): Boolean {
@@ -77,7 +87,7 @@ class LicenseManager(
     }
 
     fun signOut() {
-        store.clearAll()
+        store.clearLicenseData()
     }
 
     companion object {

@@ -27,13 +27,17 @@ class SecureStoreTest {
     }
 
     @Test
-    fun `clear all removes everything`() {
+    fun `clearLicenseData removes license but preserves device ID`() {
         val store = createTestStore()
         store.saveLicenseKey("VIZO-AAAA-BBBB-CCCC-DDDD")
         store.saveVpnAccessUrl("ss://test")
-        store.clearAll()
+        store.saveDeviceId("test-uuid")
+        store.saveAutoConnect(true)
+        store.clearLicenseData()
         assertNull(store.getLicenseKey())
         assertNull(store.getVpnAccessUrl())
+        assertEquals("test-uuid", store.getDeviceId())
+        assertTrue(store.getAutoConnect())
     }
 
     @Test

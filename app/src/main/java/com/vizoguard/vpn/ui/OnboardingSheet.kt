@@ -1,5 +1,6 @@
 package com.vizoguard.vpn.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +17,8 @@ import com.vizoguard.vpn.ui.theme.*
 
 @Composable
 fun OnboardingSheet(onChoice: (autoConnect: Boolean) -> Unit) {
+    // Prevent back press from exiting — default to manual connect
+    BackHandler { onChoice(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()

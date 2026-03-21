@@ -1,6 +1,12 @@
 # Vizoguard VPN ProGuard Rules
 -keepattributes *Annotation*
--keep class com.vizoguard.vpn.** { *; }
+
+# API serialization models (accessed via kotlinx.serialization reflection)
+-keep class com.vizoguard.vpn.api.LicenseResponse { *; }
+-keep class com.vizoguard.vpn.api.VpnResponse { *; }
+-keep class com.vizoguard.vpn.api.ErrorResponse { *; }
+-keep class com.vizoguard.vpn.api.HealthResponse { *; }
+-keep class com.vizoguard.vpn.api.LicenseRequest { *; }
 
 # Tink (via androidx.security:security-crypto) references compile-only annotations
 -dontwarn com.google.errorprone.annotations.CanIgnoreReturnValue
@@ -14,11 +20,15 @@
 -dontwarn java.lang.management.ManagementFactory
 -dontwarn java.lang.management.RuntimeMXBean
 
-# Ktor / Kotlin serialization
--keep class io.ktor.** { *; }
--keep class kotlinx.serialization.** { *; }
--keepclassmembers class * { @kotlinx.serialization.Serializable *; }
+# Ktor engine + serialization (used via reflection/service loading)
+-keep class io.ktor.client.engine.android.AndroidEngineContainer { *; }
+-keep class io.ktor.serialization.** { *; }
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keep,allowobfuscation class * extends kotlinx.serialization.KSerializer
 
-# tun2socks native bridge
+# kotlinx.serialization generated serializers
+-keepclassmembers class **$$serializer { *; }
+
+# tun2socks + shadowsocks native bridge (JNI)
 -keep class tun2socks.** { *; }
 -keep class shadowsocks.** { *; }

@@ -1,15 +1,18 @@
 package com.vizoguard.vpn.api
 
+import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import io.ktor.client.*
 import io.ktor.client.engine.android.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.IOException
 
 @Serializable data class LicenseResponse(val valid: Boolean, val status: String, val expires: String)
 @Serializable data class VpnResponse(@SerialName("access_url") val accessUrl: String)
@@ -24,91 +27,120 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
     }
 
     suspend fun activateLicense(key: String, deviceId: String): Result<LicenseResponse> {
-        return try {
+        return executeWithRetry("/license") {
             val response = client.post("$baseUrl/license") {
                 contentType(ContentType.Application.Json)
                 setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
-            VizoLogger.apiCall("/license", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseLicenseResponse(response.bodyAsText()))
             } else {
                 val err = parseErrorResponse(response.bodyAsText())
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
-        } catch (e: Exception) {
-            VizoLogger.apiCall("/license", false)
-            Result.failure(e)
         }
     }
 
     suspend fun createVpnKey(key: String, deviceId: String): Result<VpnResponse> {
-        return try {
+        return executeWithRetry("/vpn/create") {
             val response = client.post("$baseUrl/vpn/create") {
                 contentType(ContentType.Application.Json)
                 setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
-            VizoLogger.apiCall("/vpn/create", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseVpnResponse(response.bodyAsText()))
             } else {
                 val err = parseErrorResponse(response.bodyAsText())
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
-        } catch (e: Exception) {
-            VizoLogger.apiCall("/vpn/create", false)
-            Result.failure(e)
         }
     }
 
     suspend fun getVpnKey(key: String, deviceId: String): Result<VpnResponse> {
-        return try {
+        return executeWithRetry("/vpn/get") {
             val response = client.post("$baseUrl/vpn/get") {
                 contentType(ContentType.Application.Json)
                 setBody(json.encodeToString(LicenseRequest(key, deviceId)))
             }
-            VizoLogger.apiCall("/vpn/get", response.status.isSuccess(), response.status.value)
             if (response.status.isSuccess()) {
                 Result.success(parseVpnResponse(response.bodyAsText()))
             } else {
                 val err = parseErrorResponse(response.bodyAsText())
                 Result.failure(ApiException(response.status.value, err.error, err.status))
             }
-        } catch (e: Exception) {
-            VizoLogger.apiCall("/vpn/get", false)
-            Result.failure(e)
         }
     }
 
     suspend fun checkHealth(): Result<HealthResponse> {
-        return try {
+        return executeWithRetry("/health") {
             val response = client.get("$baseUrl/health")
-            VizoLogger.apiCall("/health", response.status.isSuccess(), response.status.value)
             Result.success(parseHealthResponse(response.bodyAsText()))
-        } catch (e: Exception) {
-            VizoLogger.apiCall("/health", false)
-            Result.failure(e)
         }
     }
 
     suspend fun checkVpnStatus(): Result<HealthResponse> {
-        return try {
+        return executeWithRetry("/vpn/status") {
             val response = client.get("$baseUrl/vpn/status")
-            VizoLogger.apiCall("/vpn/status", response.status.isSuccess(), response.status.value)
             Result.success(parseHealthResponse(response.bodyAsText()))
-        } catch (e: Exception) {
-            VizoLogger.apiCall("/vpn/status", false)
-            Result.failure(e)
         }
     }
 
+    fun close() {
+        client.close()
+    }
+
+    /**
+     * Retries on transient failures (IOException, 5xx) with exponential backoff.
+     * Non-retryable failures (4xx ApiException) are returned immediately.
+     */
+    private suspend fun <T> executeWithRetry(
+        endpoint: String,
+        maxRetries: Int = MAX_RETRIES,
+        block: suspend () -> Result<T>
+    ): Result<T> {
+        var lastException: Exception? = null
+        for (attempt in 0..maxRetries) {
+            if (attempt > 0) delay(RETRY_DELAYS_MS[attempt.coerceAtMost(RETRY_DELAYS_MS.lastIndex)])
+            try {
+                val result = block()
+                VizoLogger.apiCall(endpoint, result.isSuccess,
+                    (result.exceptionOrNull() as? ApiException)?.httpStatus)
+                // Don't retry 4xx client errors — they won't change on retry
+                if (result.isFailure) {
+                    val ex = result.exceptionOrNull()
+                    if (ex is ApiException && ex.httpStatus in 400..499) return result
+                }
+                if (result.isSuccess) return result
+                lastException = result.exceptionOrNull() as? Exception
+            } catch (e: IOException) {
+                lastException = e
+                VizoLogger.apiCall(endpoint, false)
+            } catch (e: Exception) {
+                VizoLogger.apiCall(endpoint, false)
+                return Result.failure(e)
+            }
+        }
+        return Result.failure(lastException ?: IOException("Request failed after retries"))
+    }
+
     companion object {
+        private const val MAX_RETRIES = 2
+        private val RETRY_DELAYS_MS = longArrayOf(1000L, 2000L, 4000L)
+
         private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
         fun parseLicenseResponse(body: String): LicenseResponse = json.decodeFromString(body)
         fun parseVpnResponse(body: String): VpnResponse = json.decodeFromString(body)
-        fun parseErrorResponse(body: String): ErrorResponse = json.decodeFromString(body)
         fun parseHealthResponse(body: String): HealthResponse = json.decodeFromString(body)
+
+        fun parseErrorResponse(body: String): ErrorResponse {
+            return try {
+                json.decodeFromString(body)
+            } catch (_: Exception) {
+                VizoLogger.w(Tag.API, "Non-JSON error response: ${body.take(200)}")
+                ErrorResponse("Server error", "")
+            }
+        }
     }
 }
 

@@ -2,7 +2,9 @@ package com.vizoguard.vpn
 
 import android.content.Intent
 import android.net.VpnService
+import com.vizoguard.vpn.BuildConfig
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +28,8 @@ class MainActivity : ComponentActivity() {
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             pendingVpnConnect?.invoke()
+        } else {
+            Toast.makeText(this, "VPN permission is required to protect your connection", Toast.LENGTH_LONG).show()
         }
         pendingVpnConnect = null
     }
@@ -80,12 +84,12 @@ class MainActivity : ComponentActivity() {
                                     onKillSwitchChange = { appState.getStore().saveKillSwitch(it) },
                                     onNotificationsChange = { appState.getStore().saveNotifications(it) },
                                     onSignOut = { showSettings = false; appState.signOut() },
-                                    onOpenDebug = { showSettings = false; showDebug = true }
+                                    onOpenDebug = if (BuildConfig.DEBUG) {{ showSettings = false; showDebug = true }} else null
                                 )
                             }
                         }
 
-                        if (showDebug) {
+                        if (showDebug && BuildConfig.DEBUG) {
                             DebugScreen(
                                 vpnStatus = vpnStatus,
                                 licenseKey = store.key,
@@ -119,7 +123,7 @@ class MainActivity : ComponentActivity() {
             val key = uri.getQueryParameter("key")
             if (key != null && LicenseManager.isValidKeyFormat(key)) {
                 val appState = ViewModelProvider(this)[AppState::class.java]
-                appState.activate(key)
+                appState.activateFromDeepLink(key)
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.vizoguard.vpn.ui
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -24,6 +23,8 @@ import com.journeyapps.barcodescanner.ScanOptions
 import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.ui.theme.*
 
+private val ALPHANUMERIC_REGEX = "[^A-Z0-9]".toRegex()
+
 @Composable
 fun ActivateScreen(
     onActivate: (String) -> Unit,
@@ -31,18 +32,22 @@ fun ActivateScreen(
     errorMessage: String?
 ) {
     var keyInput by remember { mutableStateOf("") }
+    var qrError by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
 
     val qrLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { scanned ->
             // Extract key from deep link or raw key
             val key = if (scanned.startsWith("vizoguard-vpn://activate?key=")) {
-                scanned.substringAfter("key=")
+                java.net.URLDecoder.decode(scanned.substringAfter("key="), "UTF-8")
             } else if (scanned.startsWith("VIZO-")) {
                 scanned
             } else null
             if (key != null && LicenseManager.isValidKeyFormat(key)) {
+                qrError = null
                 onActivate(key)
+            } else {
+                qrError = "This QR code doesn't contain a valid Vizoguard license key"
             }
         }
     }
@@ -76,7 +81,7 @@ fun ActivateScreen(
             value = keyInput,
             onValueChange = { input ->
                 // Auto-format: VIZO-XXXX-XXXX-XXXX-XXXX
-                val clean = input.uppercase().replace("[^A-Z0-9]".toRegex(), "")
+                val clean = input.uppercase().replace(ALPHANUMERIC_REGEX, "").take(20)
                 val formatted = buildString {
                     clean.forEachIndexed { i, c ->
                         if (i == 4 || i == 8 || i == 12 || i == 16) append('-')
@@ -123,34 +128,28 @@ fun ActivateScreen(
         }
 
         // Error message
-        if (errorMessage != null) {
+        val displayError = errorMessage ?: qrError
+        if (displayError != null) {
             Spacer(Modifier.height(12.dp))
-            Text(errorMessage, color = Red, fontSize = 13.sp, textAlign = TextAlign.Center)
+            Text(displayError, color = Red, fontSize = 13.sp, textAlign = TextAlign.Center)
         }
 
         Spacer(Modifier.height(16.dp))
         Text("or", color = TextSecondary, fontSize = 12.sp)
         Spacer(Modifier.height(12.dp))
 
-        // QR + Email buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
-                onClick = {
-                    val options = ScanOptions().apply {
-                        setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                        setPrompt("Scan your Vizoguard QR code")
-                        setCameraId(0)
-                    }
-                    qrLauncher.launch(options)
-                },
-                modifier = Modifier.weight(1f)
-            ) { Text("Scan QR", fontSize = 13.sp) }
-
-            OutlinedButton(
-                onClick = { /* Opens email app — handled by deep link */ },
-                modifier = Modifier.weight(1f)
-            ) { Text("From Email", fontSize = 13.sp) }
-        }
+        // QR scan button
+        OutlinedButton(
+            onClick = {
+                val options = ScanOptions().apply {
+                    setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                    setPrompt("Scan your Vizoguard QR code")
+                    setCameraId(0)
+                }
+                qrLauncher.launch(options)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Scan QR Code", fontSize = 13.sp) }
 
         Spacer(Modifier.height(24.dp))
         Text(

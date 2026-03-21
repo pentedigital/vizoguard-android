@@ -3,18 +3,22 @@ package com.vizoguard.vpn.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vizoguard.vpn.ui.theme.*
-import com.vizoguard.vpn.util.LogExporter
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DebugScreen(
@@ -28,7 +32,18 @@ fun DebugScreen(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val logText = remember { VizoLogger.getAllLogText(context) }
+    var logText by remember { mutableStateOf("Loading logs...") }
+    var refreshKey by remember { mutableIntStateOf(0) }
+
+    // Load logs on background thread, refresh every 3s or on clear
+    LaunchedEffect(refreshKey) {
+        while (true) {
+            logText = withContext(Dispatchers.IO) {
+                VizoLogger.getAllLogText(context)
+            }
+            delay(3000L)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -37,7 +52,7 @@ fun DebugScreen(
             .padding(16.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Debug", color = Accent, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text("Debug", color = Accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             TextButton(onClick = onDismiss) { Text("Close", color = TextSecondary) }
         }
 
@@ -57,7 +72,10 @@ fun DebugScreen(
             Button(onClick = onExportLogs, colors = ButtonDefaults.buttonColors(containerColor = Accent)) {
                 Text("Export Logs", color = Surface, fontSize = 12.sp)
             }
-            OutlinedButton(onClick = onClearLogs) {
+            OutlinedButton(onClick = {
+                onClearLogs()
+                refreshKey++ // trigger immediate reload
+            }) {
                 Text("Clear Logs", fontSize = 12.sp)
             }
         }
@@ -71,7 +89,7 @@ fun DebugScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .background(Surface, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                .background(Surface, shape = RoundedCornerShape(8.dp))
                 .padding(8.dp)
         ) {
             Text(

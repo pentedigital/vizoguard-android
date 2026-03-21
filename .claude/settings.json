@@ -7,7 +7,7 @@
       },
       {
         "matcher": "Bash|Edit|Write",
-        "command": "node -e \"const i = process.env.CLAUDE_TOOL_INPUT || ''; if (/libs[\\\\/]tun2socks|rm\\s.*libs/.test(i)) { console.error('BLOCKED: libs/tun2socks.aar is a critical local dependency. Do not delete or modify.'); process.exit(1); }\""
+        "command": "node -e \"const i = process.env.CLAUDE_TOOL_INPUT || ''; if (/tun2socks\\.aar|(^|\\\\s)(rm|del|remove)\\\\s+.*libs[\\\\\\\\/]/.test(i)) { console.error('BLOCKED: libs/tun2socks.aar is a critical local dependency. Do not delete or modify.'); process.exit(1); }\""
       }
     ],
     "PostToolUse": [

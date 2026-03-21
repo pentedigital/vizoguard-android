@@ -7,6 +7,8 @@ import com.vizoguard.vpn.api.ApiClient
 import com.vizoguard.vpn.license.DeviceId
 import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.license.SecureStore
+import com.vizoguard.vpn.util.Tag
+import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.VpnState
 import kotlinx.coroutines.flow.*
@@ -18,7 +20,7 @@ class AppState(app: Application) : AndroidViewModel(app) {
 
     private val store = SecureStore.create(app)
     private val api = ApiClient()
-    private val deviceId = DeviceId.get(app)
+    private val deviceId = DeviceId.get(store)
     val licenseManager = LicenseManager(store, api, deviceId)
     val vpnManager = VpnManager(app, viewModelScope)
 
@@ -33,15 +35,26 @@ class AppState(app: Application) : AndroidViewModel(app) {
 
     init {
         val cached = licenseManager.getCachedState()
+        VizoLogger.systemEvent("AppState init: valid=${cached.isValid}, autoConnect=${store.getAutoConnect()}, hasVpnUrl=${cached.vpnAccessUrl != null}")
+
         if (cached.isValid) {
             _screen.value = Screen.MAIN
             vpnManager.updateState(VpnState.LICENSED)
-            if (store.getAutoConnect() && cached.vpnAccessUrl != null) {
-                connect()
-            }
         }
+
+        // Validate license async, then auto-connect if appropriate
         viewModelScope.launch {
-            licenseManager.validate()
+            val result = licenseManager.validate()
+            val state = licenseManager.getCachedState()
+            if (state.isValid && store.getAutoConnect() && state.vpnAccessUrl != null) {
+                VizoLogger.systemEvent("Auto-connecting after validation")
+                connect()
+            } else if (!state.isValid && cached.isValid) {
+                // License was valid from cache but server says no — disconnect if connected
+                VizoLogger.systemEvent("License invalidated by server — disconnecting")
+                vpnManager.stopVpn()
+                _screen.value = Screen.ACTIVATE
+            }
         }
     }
 
@@ -65,6 +78,16 @@ class AppState(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Called from deep link — guards against replacing an active license */
+    fun activateFromDeepLink(key: String) {
+        val existing = licenseManager.getCachedState()
+        if (existing.isValid) {
+            VizoLogger.systemEvent("Deep link activation blocked — license already active")
+            return
+        }
+        activate(key)
+    }
+
     fun finishOnboarding(autoConnect: Boolean) {
         store.saveAutoConnect(autoConnect)
         _screen.value = Screen.MAIN
@@ -73,7 +96,11 @@ class AppState(app: Application) : AndroidViewModel(app) {
 
     fun connect() {
         val state = licenseManager.getCachedState()
-        val accessUrl = state.vpnAccessUrl ?: return
+        val accessUrl = state.vpnAccessUrl
+        if (accessUrl == null) {
+            _errorMessage.value = "VPN not provisioned. Try signing out and re-activating."
+            return
+        }
         vpnManager.startVpn(accessUrl, store.getKillSwitch())
     }
 
@@ -89,6 +116,11 @@ class AppState(app: Application) : AndroidViewModel(app) {
     }
 
     fun getStore() = store
+
+    override fun onCleared() {
+        super.onCleared()
+        api.close()
+    }
 
     private fun userFriendlyError(e: Throwable): String {
         if (e is com.vizoguard.vpn.api.ApiException) {

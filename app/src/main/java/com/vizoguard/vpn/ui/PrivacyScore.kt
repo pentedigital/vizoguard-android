@@ -39,6 +39,7 @@ fun PrivacyScore(vpnState: VpnState) {
             isConnected -> Teal
             isConnecting -> Amber
             isError -> Red
+            isIdle -> TextSecondary
             else -> Red
         },
         animationSpec = tween(400),
@@ -64,6 +65,7 @@ fun PrivacyScore(vpnState: VpnState) {
         isConnected -> "Fully Protected"
         isConnecting -> "Connecting..."
         isError -> "At Risk"
+        isIdle -> "Ready"
         else -> "Exposed"
     }
 
@@ -71,6 +73,7 @@ fun PrivacyScore(vpnState: VpnState) {
         targetValue = when {
             isConnected -> Teal
             isConnecting -> Amber
+            isIdle -> TextSecondary
             else -> Red
         },
         animationSpec = tween(400),

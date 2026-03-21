@@ -17,12 +17,9 @@ class BootReceiver : BroadcastReceiver() {
         val accessUrl = store.getVpnAccessUrl()
         if (store.getAutoConnect() && accessUrl != null) {
             val config = VpnManager.parseShadowsocksUrl(accessUrl) ?: return
+            VpnManager.pendingConfig.set(config)
             val vpnIntent = Intent(context, ShadowsocksService::class.java).apply {
                 action = VpnManager.ACTION_CONNECT
-                putExtra(VpnManager.EXTRA_HOST, config.host)
-                putExtra(VpnManager.EXTRA_PORT, config.port)
-                putExtra(VpnManager.EXTRA_METHOD, config.method)
-                putExtra(VpnManager.EXTRA_PASSWORD, config.password)
                 putExtra(VpnManager.EXTRA_KILL_SWITCH, store.getKillSwitch())
             }
             context.startForegroundService(vpnIntent)

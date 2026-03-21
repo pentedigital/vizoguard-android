@@ -19,6 +19,15 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
     fun saveLicenseStatus(status: String) = prefs.edit().putString(KEY_STATUS, status).apply()
     fun getLicenseStatus(): String? = prefs.getString(KEY_STATUS, null)
 
+    /** Atomic write of all license fields — prevents partial state on process kill */
+    fun saveLicenseData(key: String, status: String, expiry: String) {
+        prefs.edit()
+            .putString(KEY_LICENSE, key)
+            .putString(KEY_STATUS, status)
+            .putString(KEY_EXPIRY, expiry)
+            .apply()
+    }
+
     fun saveFirstFailureTimestamp(ts: Long) = prefs.edit().putLong(KEY_FIRST_FAIL, ts).apply()
     fun getFirstFailureTimestamp(): Long? {
         return if (prefs.contains(KEY_FIRST_FAIL)) prefs.getLong(KEY_FIRST_FAIL, 0) else null
@@ -37,7 +46,16 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
     fun saveNotifications(enabled: Boolean) = prefs.edit().putBoolean(KEY_NOTIFICATIONS, enabled).apply()
     fun getNotifications(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS, false)
 
-    fun clearAll() = prefs.edit().clear().apply()
+    /** Clears license data but preserves device ID and user settings */
+    fun clearLicenseData() {
+        prefs.edit()
+            .remove(KEY_LICENSE)
+            .remove(KEY_VPN_URL)
+            .remove(KEY_EXPIRY)
+            .remove(KEY_STATUS)
+            .remove(KEY_FIRST_FAIL)
+            .apply()
+    }
 
     companion object {
         private const val KEY_LICENSE = "license_key"
