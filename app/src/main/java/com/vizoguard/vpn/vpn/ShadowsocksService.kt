@@ -57,7 +57,10 @@ class ShadowsocksService : VpnService() {
         when (intent.action) {
             VpnManager.ACTION_CONNECT -> {
                 val config = VpnManager.pendingConfig.getAndSet(null)
-                if (config == null) return START_NOT_STICKY
+                if (config == null) {
+                    VizoLogger.w(Tag.SERVICE, "ACTION_CONNECT received but pendingConfig is null — ignoring (possible rapid-fire connect race)")
+                    return START_NOT_STICKY
+                }
                 val killSwitch = intent.getBooleanExtra(VpnManager.EXTRA_KILL_SWITCH, true)
                 startForeground(NOTIFICATION_ID, buildNotification("Connecting..."))
                 connect(config.host, config.port, config.method, config.password, killSwitch)

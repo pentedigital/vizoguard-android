@@ -42,18 +42,21 @@ class AppState(app: Application) : AndroidViewModel(app) {
             vpnManager.updateState(VpnState.LICENSED)
         }
 
-        // Validate license async, then auto-connect if appropriate
+        // Validate license async, then auto-connect only on confirmed success
         viewModelScope.launch {
             val result = licenseManager.validate()
-            val state = licenseManager.getCachedState()
-            if (state.isValid && store.getAutoConnect() && state.vpnAccessUrl != null) {
-                VizoLogger.systemEvent("Auto-connecting after validation")
-                connect()
-            } else if (!state.isValid && cached.isValid) {
-                // License was valid from cache but server says no — disconnect if connected
-                VizoLogger.systemEvent("License invalidated by server — disconnecting")
-                vpnManager.stopVpn()
-                _screen.value = Screen.ACTIVATE
+            if (result.isSuccess) {
+                val state = licenseManager.getCachedState()
+                if (state.isValid && store.getAutoConnect() && state.vpnAccessUrl != null) {
+                    VizoLogger.systemEvent("Auto-connecting after validation")
+                    connect()
+                } else if (!state.isValid) {
+                    VizoLogger.systemEvent("License invalidated by server — disconnecting")
+                    vpnManager.stopVpn()
+                    _screen.value = Screen.ACTIVATE
+                }
+            } else {
+                VizoLogger.systemEvent("License validation failed (network error) — skipping auto-connect")
             }
         }
     }

@@ -17,6 +17,9 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
     private val _status = MutableStateFlow(VpnStatus())
     val status: StateFlow<VpnStatus> = _status
 
+    /** Guards against rapid-fire connect calls clearing pendingConfig */
+    private val connectLock = Any()
+
     init {
         scope.launch {
             ShadowsocksService.serviceState.collect { state ->
@@ -56,14 +59,22 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
             return
         }
 
-        // Atomic update: set server info and state together to avoid race
-        _status.value = _status.value.copy(
-            state = VpnState.CONNECTING,
-            serverHost = config.host,
-            encryptionMethod = config.method
-        )
-        // Store parsed config in companion for service to read (avoids password in Intent extras)
-        pendingConfig.set(config)
+        synchronized(connectLock) {
+            // Reject rapid-fire connect if already connecting
+            if (_status.value.state == VpnState.CONNECTING) {
+                VizoLogger.w(Tag.VPN, "startVpn ignored — already connecting")
+                return
+            }
+
+            // Atomic update: set server info and state together to avoid race
+            _status.value = _status.value.copy(
+                state = VpnState.CONNECTING,
+                serverHost = config.host,
+                encryptionMethod = config.method
+            )
+            // Store parsed config in companion for service to read (avoids password in Intent extras)
+            pendingConfig.set(config)
+        }
         val intent = Intent(context, ShadowsocksService::class.java).apply {
             action = ACTION_CONNECT
             putExtra(EXTRA_KILL_SWITCH, killSwitch)

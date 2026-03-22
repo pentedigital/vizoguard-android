@@ -32,8 +32,19 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
                 applicationContext.startService(stopIntent)
             }
 
-            // Retry on network failure
-            if (result.isFailure) return Result.retry()
+            // On network failure, check if cached license has expired before retrying
+            if (result.isFailure) {
+                val cachedExpiry = store.getLicenseExpiry()
+                if (cachedExpiry != null && LicenseManager.isExpired(cachedExpiry)) {
+                    VizoLogger.systemEvent("License expired (cached) during network error — stopping VPN")
+                    val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
+                        action = VpnManager.ACTION_DISCONNECT
+                    }
+                    applicationContext.startService(stopIntent)
+                    return Result.success()
+                }
+                return Result.retry()
+            }
         } finally {
             api.close()
         }

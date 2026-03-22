@@ -10,7 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.lifecycle.ViewModelProvider
+import androidx.activity.viewModels
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.ui.*
@@ -21,6 +21,7 @@ import com.vizoguard.vpn.vpn.VpnState
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
 
+    private val appState: AppState by viewModels()
     private var pendingVpnConnect: (() -> Unit)? = null
 
     private val vpnPermissionLauncher = registerForActivityResult(
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             VizoguardTheme {
-                val appState: AppState = viewModel()
+                val appState: AppState = viewModel(viewModelStoreOwner = this@MainActivity)
                 val screen by appState.screen.collectAsState()
                 val vpnStatus by appState.vpnManager.status.collectAsState()
                 val isLoading by appState.isLoading.collectAsState()
@@ -122,7 +123,6 @@ class MainActivity : ComponentActivity() {
         if (uri.scheme == "vizoguard-vpn" && uri.host == "activate") {
             val key = uri.getQueryParameter("key")
             if (key != null && LicenseManager.isValidKeyFormat(key)) {
-                val appState = ViewModelProvider(this)[AppState::class.java]
                 appState.activateFromDeepLink(key)
             }
         }

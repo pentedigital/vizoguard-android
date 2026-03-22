@@ -7,6 +7,7 @@ import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.ShadowsocksService
+import java.time.Instant
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -16,6 +17,26 @@ class BootReceiver : BroadcastReceiver() {
         VizoLogger.systemEvent("Boot received, autoConnect=${store.getAutoConnect()}")
         val accessUrl = store.getVpnAccessUrl()
         if (store.getAutoConnect() && accessUrl != null) {
+            // Validate cached license before starting VPN service
+            val status = store.getLicenseStatus()
+            if (status != "active") {
+                VizoLogger.systemEvent("Boot auto-connect skipped: license status is '${status ?: "null"}', not active")
+                return
+            }
+            val expiryStr = store.getLicenseExpiry()
+            if (expiryStr != null) {
+                try {
+                    val expiry = Instant.parse(expiryStr)
+                    if (Instant.now().isAfter(expiry)) {
+                        VizoLogger.systemEvent("Boot auto-connect skipped: license expired at $expiryStr")
+                        return
+                    }
+                } catch (e: Exception) {
+                    VizoLogger.systemEvent("Boot auto-connect skipped: invalid expiry format '$expiryStr'")
+                    return
+                }
+            }
+
             val config = VpnManager.parseShadowsocksUrl(accessUrl) ?: return
             VpnManager.pendingConfig.set(config)
             val vpnIntent = Intent(context, ShadowsocksService::class.java).apply {
