@@ -66,7 +66,7 @@ All source under `app/src/main/java/com/vizoguard/vpn/`:
 
 ## Testing
 
-- Unit tests in `app/src/test/` — 28 tests across: AppState, ApiClient, LicenseManager, SecureStore, VpnManager
+- Unit tests in `app/src/test/` — 47 tests across: AppState, ApiClient, LicenseManager, SecureStore, VpnManager
 - Emulator: AVD `Medium_Phone_API_36.1` (API 36)
 - No instrumented tests yet (`app/src/androidTest/` is empty)
 
