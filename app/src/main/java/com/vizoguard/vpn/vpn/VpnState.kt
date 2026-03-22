@@ -1,7 +1,9 @@
 package com.vizoguard.vpn.vpn
 
 enum class VpnState {
-    IDLE, LICENSED, CONNECTING, CONNECTED, RECONNECTING, BLOCKED, ERROR
+    IDLE, LICENSED, CONNECTING, CONNECTED, RECONNECTING,
+    BLOCKED,  // Reserved for future use (e.g., network-level VPN blocking detection)
+    ERROR
 }
 
 data class ShadowsocksConfig(

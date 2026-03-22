@@ -22,8 +22,10 @@ import java.io.IOException
 
 class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
 
-    private val client = HttpClient(Android) {
-        engine { connectTimeout = 15_000; socketTimeout = 15_000 }
+    private val client by lazy {
+        HttpClient(Android) {
+            engine { connectTimeout = 15_000; socketTimeout = 15_000 }
+        }
     }
 
     suspend fun activateLicense(key: String, deviceId: String): Result<LicenseResponse> {
@@ -95,12 +97,12 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
      */
     private suspend fun <T> executeWithRetry(
         endpoint: String,
-        maxRetries: Int = MAX_RETRIES,
+        maxAttempts: Int = MAX_ATTEMPTS,
         block: suspend () -> Result<T>
     ): Result<T> {
         var lastException: Exception? = null
-        for (attempt in 0..maxRetries) {
-            if (attempt > 0) delay(RETRY_DELAYS_MS[attempt.coerceAtMost(RETRY_DELAYS_MS.lastIndex)])
+        for (attempt in 1..maxAttempts) {
+            if (attempt > 1) delay(RETRY_DELAYS_MS[(attempt - 2).coerceAtMost(RETRY_DELAYS_MS.lastIndex)])
             try {
                 val result = block()
                 VizoLogger.apiCall(endpoint, result.isSuccess,
@@ -124,7 +126,7 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
     }
 
     companion object {
-        private const val MAX_RETRIES = 2
+        private const val MAX_ATTEMPTS = 3  // 1 initial + 2 retries
         private val RETRY_DELAYS_MS = longArrayOf(1000L, 2000L, 4000L)
 
         private val json = Json { ignoreUnknownKeys = true; isLenient = true }

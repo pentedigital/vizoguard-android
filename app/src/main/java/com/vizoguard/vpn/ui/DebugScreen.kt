@@ -18,6 +18,7 @@ import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -34,15 +35,21 @@ fun DebugScreen(
     val context = LocalContext.current
     var logText by remember { mutableStateOf("Loading logs...") }
     var refreshKey by remember { mutableIntStateOf(0) }
+    val scrollState = rememberScrollState()
 
     // Load logs on background thread, refresh every 3s or on clear
     LaunchedEffect(refreshKey) {
-        while (true) {
+        while (isActive) {
             logText = withContext(Dispatchers.IO) {
                 VizoLogger.getAllLogText(context)
             }
             delay(3000L)
         }
+    }
+
+    // Auto-scroll to bottom when new logs arrive
+    LaunchedEffect(logText) {
+        scrollState.animateScrollTo(scrollState.maxValue)
     }
 
     Column(
@@ -98,7 +105,7 @@ fun DebugScreen(
                 fontSize = 9.sp,
                 fontFamily = FontFamily.Monospace,
                 lineHeight = 13.sp,
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                modifier = Modifier.verticalScroll(scrollState)
             )
         }
     }

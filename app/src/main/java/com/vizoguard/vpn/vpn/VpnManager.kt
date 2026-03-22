@@ -83,6 +83,14 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
     }
 
     fun stopVpn() {
+        synchronized(connectLock) {
+            // Reject rapid-fire disconnect if already idle or disconnecting
+            val currentState = _status.value.state
+            if (currentState == VpnState.IDLE || currentState == VpnState.LICENSED) {
+                VizoLogger.w(Tag.VPN, "stopVpn ignored — already ${currentState.name}")
+                return
+            }
+        }
         val intent = Intent(context, ShadowsocksService::class.java).apply {
             action = ACTION_DISCONNECT
         }

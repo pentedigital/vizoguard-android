@@ -38,25 +38,32 @@ class AppState(app: Application) : AndroidViewModel(app) {
         VizoLogger.systemEvent("AppState init: valid=${cached.isValid}, autoConnect=${store.getAutoConnect()}, hasVpnUrl=${cached.vpnAccessUrl != null}")
 
         if (cached.isValid) {
-            _screen.value = Screen.MAIN
+            // Don't set screen to MAIN yet — wait for async validation to confirm
             vpnManager.updateState(VpnState.LICENSED)
         }
 
-        // Validate license async, then auto-connect only on confirmed success
+        // Validate license async, then set screen and auto-connect only on confirmed success
         viewModelScope.launch {
+            if (!cached.isValid) return@launch // Already on ACTIVATE screen
+
             val result = licenseManager.validate()
             if (result.isSuccess) {
                 val state = licenseManager.getCachedState()
-                if (state.isValid && store.getAutoConnect() && state.vpnAccessUrl != null) {
-                    VizoLogger.systemEvent("Auto-connecting after validation")
-                    connect()
-                } else if (!state.isValid) {
+                if (state.isValid) {
+                    _screen.value = Screen.MAIN
+                    if (store.getAutoConnect() && state.vpnAccessUrl != null) {
+                        VizoLogger.systemEvent("Auto-connecting after validation")
+                        connect()
+                    }
+                } else {
                     VizoLogger.systemEvent("License invalidated by server — disconnecting")
                     vpnManager.stopVpn()
                     _screen.value = Screen.ACTIVATE
                 }
             } else {
-                VizoLogger.systemEvent("License validation failed (network error) — skipping auto-connect")
+                // Network error — trust cached license, show MAIN
+                VizoLogger.systemEvent("License validation failed (network error) — using cached state")
+                _screen.value = Screen.MAIN
             }
         }
     }

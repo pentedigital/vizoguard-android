@@ -17,7 +17,7 @@ import com.vizoguard.vpn.ui.theme.*
 
 @Composable
 fun OnboardingSheet(onChoice: (autoConnect: Boolean) -> Unit) {
-    // Prevent back press from exiting — default to manual connect
+    // Back press dismisses onboarding without making a choice
     BackHandler { onChoice(false) }
     Column(
         modifier = Modifier

@@ -16,12 +16,17 @@ object LogExporter {
 
         // Zip all log files
         val zipFile = File(context.cacheDir, "vizoguard-logs.zip")
-        ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
-            logFiles.forEach { file ->
-                zip.putNextEntry(ZipEntry(file.name))
-                file.inputStream().use { it.copyTo(zip) }
-                zip.closeEntry()
+        try {
+            ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
+                logFiles.forEach { file ->
+                    zip.putNextEntry(ZipEntry(file.name))
+                    file.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
             }
+        } catch (e: Exception) {
+            zipFile.delete()
+            throw e
         }
 
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)

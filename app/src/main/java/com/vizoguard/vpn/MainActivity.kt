@@ -1,7 +1,9 @@
 package com.vizoguard.vpn
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.VpnService
+import android.os.Build
 import com.vizoguard.vpn.BuildConfig
 import android.os.Bundle
 import android.widget.Toast
@@ -38,6 +40,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleDeepLink(intent)
+
+        // Request notification permission on Android 13+ (required for foreground service notifications)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
 
         setContent {
             VizoguardTheme {
@@ -118,7 +127,12 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
     }
 
+    private var lastDeepLinkTime = 0L
+
     private fun handleDeepLink(intent: Intent?) {
+        val now = System.currentTimeMillis()
+        if (now - lastDeepLinkTime < 2000) return
+        lastDeepLinkTime = now
         val uri = intent?.data ?: return
         if (uri.scheme == "vizoguard-vpn" && uri.host == "activate") {
             val key = uri.getQueryParameter("key")

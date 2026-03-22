@@ -9,6 +9,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 
 private val IS_DEBUG_BUILD: Boolean by lazy {
     try {
@@ -41,7 +43,7 @@ object VizoLogger {
         .withZone(ZoneId.of("UTC"))
     private var sessionId = UUID.randomUUID().toString().take(8)
     @Volatile private var initialized = false
-    private val fileLock = Any()
+    private val fileLock = ReentrantLock()
     private var writer: BufferedWriter? = null
     private var writerFile: File? = null
     private var linesSinceFlush = 0
@@ -100,10 +102,25 @@ object VizoLogger {
             }
         }
 
-        // File write is the only part that needs synchronization
-        synchronized(fileLock) {
-            writeToFile(line)
+        // File write is the only part that needs synchronization — use tryLock with timeout
+        // to avoid blocking the caller indefinitely if another thread holds the lock
+        if (fileLock.tryLock(500, TimeUnit.MILLISECONDS)) {
+            try {
+                writeToFile(line)
+            } finally {
+                fileLock.unlock()
+            }
+        } else {
+            // Lock contention — drop this log line rather than block the caller
+            if (isDebug) Log.w("VizoLogger", "Dropped log line due to lock contention: ${line.take(80)}")
         }
+    }
+
+    /** Redact sensitive data (license keys, ss:// URLs) before writing to file */
+    private fun sanitize(msg: String): String {
+        return msg
+            .replace(Regex("VIZO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"), "VIZO-****-****-****-****")
+            .replace(Regex("ss://[^\\s]+"), "ss://[REDACTED]")
     }
 
     /** Must only be called under [fileLock] */
@@ -124,7 +141,7 @@ object VizoLogger {
                 writer = BufferedWriter(FileWriter(file, true))
                 writerFile = file
             }
-            writer!!.appendLine(line)
+            writer!!.appendLine(sanitize(line))
             linesSinceFlush++
             if (linesSinceFlush >= FLUSH_INTERVAL) {
                 writer!!.flush()
@@ -185,9 +202,12 @@ object VizoLogger {
     }
 
     fun clearLogs() {
-        synchronized(fileLock) {
+        fileLock.lock()
+        try {
             closeWriter()
             logDir?.listFiles()?.forEach { it.delete() }
+        } finally {
+            fileLock.unlock()
         }
     }
 }

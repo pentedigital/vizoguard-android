@@ -22,20 +22,13 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
             val manager = LicenseManager(store, api, deviceId)
             val result = manager.validate()
 
-            // If license is no longer valid, stop the VPN
-            val state = manager.getCachedState()
-            if (!state.isValid) {
-                VizoLogger.systemEvent("License invalid — stopping VPN")
-                val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
-                    action = VpnManager.ACTION_DISCONNECT
-                }
-                applicationContext.startService(stopIntent)
-            }
-
-            // On network failure, check if cached license has expired before retrying
+            // On network failure, check grace period BEFORE cached expiry
             if (result.isFailure) {
                 val cachedExpiry = store.getLicenseExpiry()
-                if (cachedExpiry != null && LicenseManager.isExpired(cachedExpiry)) {
+                val isExpired = cachedExpiry != null && LicenseManager.isExpired(cachedExpiry)
+
+                if (isExpired) {
+                    // Both network failed AND cached license expired — stop VPN
                     VizoLogger.systemEvent("License expired (cached) during network error — stopping VPN")
                     val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
                         action = VpnManager.ACTION_DISCONNECT
@@ -43,7 +36,20 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
                     applicationContext.startService(stopIntent)
                     return Result.success()
                 }
+
+                // Network failed but cached license still valid (grace period) — retry later
+                VizoLogger.systemEvent("Network error but cached license still valid — will retry")
                 return Result.retry()
+            }
+
+            // Validation succeeded — if license is no longer valid, stop the VPN
+            val state = manager.getCachedState()
+            if (!state.isValid) {
+                VizoLogger.systemEvent("License invalid — stopping VPN")
+                val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
+                    action = VpnManager.ACTION_DISCONNECT
+                }
+                applicationContext.startService(stopIntent)
             }
         } finally {
             api.close()

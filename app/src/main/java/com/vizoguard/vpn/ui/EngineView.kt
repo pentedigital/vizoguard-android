@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.vizoguard.vpn.ui.theme.*
 import com.vizoguard.vpn.vpn.VpnStatus
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun EngineView(
@@ -38,7 +39,7 @@ fun EngineView(
     var messageIndex by remember { mutableIntStateOf(0) }
     LaunchedEffect(expanded) {
         if (!expanded) return@LaunchedEffect
-        while (true) {
+        while (isActive) {
             delay(4000L)
             messageIndex = (messageIndex + 1) % messages.size
         }
@@ -131,7 +132,7 @@ fun EngineView(
                 EngineStatRow(
                     icon = "[N]",
                     label = "DNS",
-                    value = "Encrypted (1.1.1.1)"
+                    value = "Tunneled (1.1.1.1)"
                 )
 
                 // "What Just Happened?" section

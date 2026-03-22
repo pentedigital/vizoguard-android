@@ -27,6 +27,7 @@ import com.vizoguard.vpn.ui.theme.*
 import com.vizoguard.vpn.vpn.VpnState
 import com.vizoguard.vpn.vpn.VpnStatus
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @Composable
 fun MainScreen(
@@ -48,7 +49,7 @@ fun MainScreen(
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     LaunchedEffect(isConnected, vpnStatus.connectedSince) {
         if (isConnected && vpnStatus.connectedSince != null) {
-            while (true) {
+            while (isActive) {
                 elapsedSeconds = (System.currentTimeMillis() - vpnStatus.connectedSince) / 1000
                 delay(1000L)
             }

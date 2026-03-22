@@ -50,6 +50,7 @@ class ShadowsocksService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Null intent means system restarted the service after kill — clean up
         if (intent == null) {
+            VizoLogger.systemEvent("Service restarted by system with null intent — stopping")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -125,6 +126,8 @@ class ShadowsocksService : VpnService() {
             .addAddress("fd00::2", 128)
             .addRoute("0.0.0.0", 0)
             .addRoute("::", 0)
+            // DNS queries are tunneled through the VPN (tun2socks routes all traffic including DNS)
+            // Using public resolvers as the TUN interface DNS to avoid ISP DNS interception
             .addDnsServer("1.1.1.1")
             .addDnsServer("8.8.8.8")
             .setMtu(1500)
@@ -133,9 +136,21 @@ class ShadowsocksService : VpnService() {
             builder.setBlocking(true)
         }
 
-        return builder.establish()
+        val startMs = System.currentTimeMillis()
+        val fd = builder.establish()
+        val elapsed = System.currentTimeMillis() - startMs
+        if (elapsed > 1000) {
+            VizoLogger.w(Tag.SERVICE, "establishTun() took ${elapsed}ms — unusually slow")
+        } else {
+            VizoLogger.d(Tag.SERVICE, "establishTun() completed in ${elapsed}ms")
+        }
+        return fd
     }
 
+    // Note: SS password is held as a JVM String in plaintext memory. This is inherent to the
+    // JVM — String objects cannot be reliably zeroed. A JNI-based solution would be needed to
+    // keep the password in native memory and wipe it after use, but that adds significant
+    // complexity for marginal benefit given the password's short lifetime in this context.
     private fun connectTunnel(
         fd: ParcelFileDescriptor, host: String, port: Int, method: String, password: String
     ) {
