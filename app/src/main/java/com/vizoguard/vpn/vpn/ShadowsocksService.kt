@@ -133,12 +133,9 @@ class ShadowsocksService : VpnService() {
             .addDnsServer("8.8.8.8")
             .setMtu(1500)
 
-        // Note: True kill-switch requires Android system setting:
+        // Kill-switch: Android requires system-level setting for true traffic leak prevention.
         // Settings > Network > VPN > Vizoguard > "Block connections without VPN"
-        // setBlocking only controls whether establish() blocks, not traffic leak prevention
-        if (killSwitch && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setMetered(false)
-        }
+        // No in-app API can enforce this — the toggle is informational only.
 
         val startMs = System.currentTimeMillis()
         val fd = builder.establish()
