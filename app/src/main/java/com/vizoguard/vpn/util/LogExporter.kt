@@ -26,7 +26,7 @@ object LogExporter {
             }
         } catch (e: Exception) {
             zipFile.delete()
-            throw e
+            return null
         }
 
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", zipFile)

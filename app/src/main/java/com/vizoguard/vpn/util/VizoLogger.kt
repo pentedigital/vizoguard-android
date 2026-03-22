@@ -178,6 +178,10 @@ object VizoLogger {
     }
 
     fun getAllLogText(context: Context): String {
+        // Flush writer and snapshot file list under lock to avoid torn reads
+        if (fileLock.tryLock(500, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+            try { writer?.flush() } finally { fileLock.unlock() }
+        }
         val dir = logDir ?: File(context.filesDir, "logs")
         val files = dir.listFiles()?.filter { it.name.startsWith("vizoguard") }?.sortedBy { it.name }
             ?: return ""
