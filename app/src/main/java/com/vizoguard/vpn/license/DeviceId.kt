@@ -3,6 +3,7 @@ package com.vizoguard.vpn.license
 import java.util.UUID
 
 object DeviceId {
+    @Synchronized
     fun get(store: SecureStore): String {
         val existing = store.getDeviceId()
         if (existing != null) return existing

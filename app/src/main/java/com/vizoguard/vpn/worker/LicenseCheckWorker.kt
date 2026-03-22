@@ -10,6 +10,8 @@ import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.ShadowsocksService
 import com.vizoguard.vpn.vpn.VpnManager
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 class LicenseCheckWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -52,7 +54,7 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
                 applicationContext.startService(stopIntent)
             }
         } finally {
-            api.close()
+            withContext(NonCancellable) { api.close() }
         }
         return Result.success()
     }

@@ -79,30 +79,31 @@ class ShadowsocksService : VpnService() {
     }
 
     private fun connect(host: String, port: Int, method: String, password: String, killSwitch: Boolean) {
-        // Cancel any in-flight connect coroutine, then tear down existing tunnel
-        connectJob?.cancel()
-        disconnect()
-
         lastConnectParams = ConnectParams(host, port, method, password, killSwitch)
         serviceError.value = null
 
         val redactedHost = if (host.length > 4) "${host.take(4)}***" else "***"
         VizoLogger.vpnState(Tag.SERVICE, "connect($redactedHost:$port, cipher=$method)")
 
-        // Builder.establish() must run on the main thread (VpnService context-affine)
-        val fd = establishTun(killSwitch)
-        if (fd == null) {
-            VizoLogger.e(Tag.SERVICE, "VPN permission not granted")
-            serviceError.value = "VPN permission not granted"
-            serviceState.value = VpnState.ERROR
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
-            return
-        }
-        tunFd = fd
+        val oldJob = connectJob
+        connectJob = serviceScope.launch(Dispatchers.IO) {
+            oldJob?.cancelAndJoin()  // Wait for old coroutine to finish cleanup
+            disconnect()
 
-        // Only the Shadowsocks handshake (network I/O) runs on the IO dispatcher
-        connectJob = serviceScope.launch {
+            // Builder.establish() must run on the main thread (VpnService context-affine)
+            val fd = withContext(Dispatchers.Main) { establishTun(killSwitch) }
+            if (fd == null) {
+                VizoLogger.e(Tag.SERVICE, "VPN permission not granted")
+                serviceError.value = "VPN permission not granted"
+                serviceState.value = VpnState.ERROR
+                withContext(Dispatchers.Main) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+                return@launch
+            }
+            tunFd = fd
+
             try {
                 connectTunnel(fd, host, port, method, password)
                 VizoLogger.vpnState(Tag.SERVICE, "tunnel connected")
@@ -182,6 +183,7 @@ class ShadowsocksService : VpnService() {
             // Tear down old tunnel, re-establish TUN
             withContext(NonCancellable) { disconnect() }
             val fd = withContext(Dispatchers.Main) { establishTun(killSwitch) }
+            tunFd = fd  // Set immediately so onDestroy can close it
             if (fd == null) {
                 VizoLogger.e(Tag.SERVICE, "reconnect: VPN permission lost")
                 serviceError.value = "VPN permission revoked"
@@ -192,7 +194,6 @@ class ShadowsocksService : VpnService() {
                 }
                 return
             }
-            tunFd = fd
 
             try {
                 connectTunnel(fd, host, port, method, password)

@@ -122,6 +122,7 @@ object VizoLogger {
         return msg
             .replace(Regex("VIZO-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}"), "VIZO-****-****-****-****")
             .replace(Regex("ss://[^\\s]+"), "ss://[REDACTED]")
+            .replace(Regex("\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b"), "[IP_REDACTED]")
     }
 
     /** Must only be called under [fileLock] */

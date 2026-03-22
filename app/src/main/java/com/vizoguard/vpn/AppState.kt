@@ -122,7 +122,7 @@ class AppState(app: Application) : AndroidViewModel(app) {
         vpnManager.stopVpn()
         licenseManager.signOut()
         _screen.value = Screen.ACTIVATE
-        vpnManager.updateState(VpnState.IDLE)
+        // Don't force IDLE — let service lifecycle handle state transition
     }
 
     fun getStore() = store
