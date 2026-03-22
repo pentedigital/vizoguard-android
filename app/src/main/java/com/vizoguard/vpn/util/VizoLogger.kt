@@ -49,6 +49,7 @@ object VizoLogger {
     private var linesSinceFlush = 0
     private const val FLUSH_INTERVAL = 10
 
+    @Synchronized
     fun init(context: Context, debug: Boolean = IS_DEBUG_BUILD) {
         if (initialized) return
         initialized = true

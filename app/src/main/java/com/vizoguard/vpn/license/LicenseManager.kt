@@ -59,6 +59,8 @@ class LicenseManager(
 
     suspend fun validate(): Result<LicenseState> {
         val key = store.getLicenseKey() ?: return Result.failure(Exception("No license"))
+        // POST /api/license handles both first-time activation and periodic validation
+        // Server distinguishes by whether device_id is already bound
         val result = api.activateLicense(key, deviceId)
         if (result.isSuccess) {
             val license = result.getOrThrow()

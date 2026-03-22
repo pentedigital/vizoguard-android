@@ -83,16 +83,20 @@ class MainActivity : ComponentActivity() {
                         )
 
                         if (showSettings) {
+                            var autoConnect by remember { mutableStateOf(appState.getStore().getAutoConnect()) }
+                            var killSwitch by remember { mutableStateOf(appState.getStore().getKillSwitch()) }
+                            var notifications by remember { mutableStateOf(appState.getStore().getNotifications()) }
+
                             ModalBottomSheet(onDismissRequest = { showSettings = false }) {
                                 SettingsSheet(
-                                    autoConnect = appState.getStore().getAutoConnect(),
-                                    killSwitch = appState.getStore().getKillSwitch(),
-                                    notifications = appState.getStore().getNotifications(),
+                                    autoConnect = autoConnect,
+                                    killSwitch = killSwitch,
+                                    notifications = notifications,
                                     licenseKey = store.key,
                                     expiresAt = store.expires,
-                                    onAutoConnectChange = { appState.getStore().saveAutoConnect(it) },
-                                    onKillSwitchChange = { appState.getStore().saveKillSwitch(it) },
-                                    onNotificationsChange = { appState.getStore().saveNotifications(it) },
+                                    onAutoConnectChange = { appState.getStore().saveAutoConnect(it); autoConnect = it },
+                                    onKillSwitchChange = { appState.getStore().saveKillSwitch(it); killSwitch = it },
+                                    onNotificationsChange = { appState.getStore().saveNotifications(it); notifications = it },
                                     onSignOut = { showSettings = false; appState.signOut() },
                                     onOpenDebug = if (BuildConfig.DEBUG) {{ showSettings = false; showDebug = true }} else null
                                 )

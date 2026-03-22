@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
+import com.vizoguard.vpn.R
 import android.os.ParcelFileDescriptor
 import com.vizoguard.vpn.MainActivity
 import com.vizoguard.vpn.util.Tag
@@ -132,8 +133,11 @@ class ShadowsocksService : VpnService() {
             .addDnsServer("8.8.8.8")
             .setMtu(1500)
 
+        // Note: True kill-switch requires Android system setting:
+        // Settings > Network > VPN > Vizoguard > "Block connections without VPN"
+        // setBlocking only controls whether establish() blocks, not traffic leak prevention
         if (killSwitch && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setBlocking(true)
+            builder.setMetered(false)
         }
 
         val startMs = System.currentTimeMillis()
@@ -247,6 +251,7 @@ class ShadowsocksService : VpnService() {
         connectJob?.cancel()
         disconnect()
         serviceState.value = VpnState.IDLE
+        serviceError.value = null
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -274,7 +279,7 @@ class ShadowsocksService : VpnService() {
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("Vizoguard VPN")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(openIntent)
             .addAction(Notification.Action.Builder(null, "Disconnect", disconnectIntent).build())
             .setOngoing(true)
