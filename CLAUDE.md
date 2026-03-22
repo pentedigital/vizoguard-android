@@ -17,7 +17,7 @@ export ANDROID_HOME="$HOME/AppData/Local/Android/Sdk"
 
 ./gradlew assembleDebug      # Build
 ./gradlew lintDebug           # Lint (0 warnings expected)
-./gradlew testDebugUnitTest   # Unit tests (28 tests)
+./gradlew testDebugUnitTest   # Unit tests (47 tests)
 ./gradlew installDebug        # Install on emulator/device
 ```
 
@@ -40,6 +40,11 @@ adb shell am start -n com.vizoguard.vpn/.MainActivity
 - **AGP + compileSdk 36**: Currently on AGP 8.9.2. Some newer AndroidX libs require matching AGP versions — check compatibility before bumping dependencies.
 - **ProGuard**: Tink (from security-crypto) and Ktor need explicit keep/dontwarn rules — see `app/proguard-rules.pro`. Adding new Ktor features may need new rules.
 - **`testOptions { unitTests.isReturnDefaultValues = true }`** — Android framework methods return defaults (0/null/false) in unit tests instead of throwing. Be aware mocks may hide real issues.
+- **BootReceiver** validates cached license (status + expiry) before starting VPN service on boot — expired/invalid licenses skip auto-connect
+- **VpnManager.connect()** uses `synchronized(connectLock)` to prevent rapid-fire calls from racing on `pendingConfig`
+- **ShadowsocksService** logs a warning if `pendingConfig` is null in `onStartCommand` (race condition diagnostic)
+- **LicenseCheckWorker** checks cached license expiry on network error — if expired, stops VPN instead of retrying for 24h
+- **AppState** auto-connect only fires after server validation confirms license is valid (not from stale cache)
 
 ## Architecture
 
