@@ -105,13 +105,29 @@ class AppState(app: Application) : AndroidViewModel(app) {
     }
 
     fun connect() {
-        val state = licenseManager.getCachedState()
-        val accessUrl = state.vpnAccessUrl
-        if (accessUrl == null) {
-            _errorMessage.value = "VPN not provisioned. Try signing out and re-activating."
-            return
+        viewModelScope.launch {
+            try {
+                // Always validate before connecting — single source of truth
+                val result = licenseManager.validate()
+                if (result.isFailure) {
+                    _errorMessage.value = "License validation failed"
+                    return@launch
+                }
+                val state = licenseManager.getCachedState()
+                if (!state.isValid) {
+                    _errorMessage.value = "License is ${state.status}"
+                    return@launch
+                }
+                val accessUrl = state.vpnAccessUrl
+                if (accessUrl == null) {
+                    _errorMessage.value = "No VPN key available"
+                    return@launch
+                }
+                vpnManager.startVpn(accessUrl, store.getKillSwitch())
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Connection failed"
+            }
         }
-        vpnManager.startVpn(accessUrl, store.getKillSwitch())
     }
 
     fun disconnect() {

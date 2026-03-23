@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.vizoguard.vpn.license.SecureStore
+import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.ShadowsocksService
@@ -43,7 +44,11 @@ class BootReceiver : BroadcastReceiver() {
                 action = VpnManager.ACTION_CONNECT
                 putExtra(VpnManager.EXTRA_KILL_SWITCH, store.getKillSwitch())
             }
-            context.startForegroundService(vpnIntent)
+            try {
+                context.startForegroundService(vpnIntent)
+            } catch (e: Exception) {
+                VizoLogger.e(Tag.SYSTEM, "Boot auto-connect failed: ${e.message}")
+            }
         }
     }
 }
