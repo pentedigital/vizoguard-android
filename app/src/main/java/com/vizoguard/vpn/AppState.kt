@@ -110,11 +110,14 @@ class AppState(app: Application) : AndroidViewModel(app) {
                 // Always validate before connecting — single source of truth
                 val result = licenseManager.validate()
                 if (result.isFailure) {
+                    // Hard rejection — stop any existing VPN connection
+                    vpnManager.stopVpn()
                     _errorMessage.value = "License validation failed"
                     return@launch
                 }
                 val state = licenseManager.getCachedState()
                 if (!state.isValid) {
+                    vpnManager.stopVpn()
                     _errorMessage.value = "License is ${state.status}"
                     return@launch
                 }

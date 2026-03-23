@@ -259,7 +259,10 @@ class ShadowsocksService : VpnService() {
     override fun onDestroy() {
         connectJob?.cancel()
         disconnect()
-        serviceState.value = VpnState.IDLE
+        // Only reset to IDLE if not already in ERROR (e.g., from onRevoke)
+        if (serviceState.value != VpnState.ERROR) {
+            serviceState.value = VpnState.IDLE
+        }
         serviceError.value = null
         serviceScope.cancel()
         super.onDestroy()
