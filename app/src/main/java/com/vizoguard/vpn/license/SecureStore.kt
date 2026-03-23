@@ -12,6 +12,7 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
 
     fun saveVpnAccessUrl(url: String) = prefs.edit().putString(KEY_VPN_URL, url).apply()
     fun getVpnAccessUrl(): String? = prefs.getString(KEY_VPN_URL, null)
+    fun clearVpnAccessUrl() = prefs.edit().remove(KEY_VPN_URL).apply()
 
     fun saveLicenseExpiry(iso8601: String) = prefs.edit().putString(KEY_EXPIRY, iso8601).apply()
     fun getLicenseExpiry(): String? = prefs.getString(KEY_EXPIRY, null)

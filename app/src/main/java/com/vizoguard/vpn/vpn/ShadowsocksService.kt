@@ -10,6 +10,7 @@ import android.os.Build
 import com.vizoguard.vpn.R
 import android.os.ParcelFileDescriptor
 import com.vizoguard.vpn.MainActivity
+import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import kotlinx.coroutines.*
@@ -58,10 +59,19 @@ class ShadowsocksService : VpnService() {
 
         when (intent.action) {
             VpnManager.ACTION_CONNECT -> {
-                val config = VpnManager.pendingConfig.getAndSet(null)
+                var config = VpnManager.pendingConfig.getAndSet(null)
                 if (config == null) {
-                    VizoLogger.w(Tag.SERVICE, "ACTION_CONNECT received but pendingConfig is null — ignoring (possible rapid-fire connect race)")
-                    return START_NOT_STICKY
+                    VizoLogger.w(Tag.SERVICE, "pendingConfig null — attempting recovery from store")
+                    val store = SecureStore.create(applicationContext)
+                    val vpnUrl = store.getVpnAccessUrl()
+                    if (vpnUrl != null) {
+                        config = VpnManager.parseShadowsocksUrl(vpnUrl)
+                    }
+                    if (config == null) {
+                        VizoLogger.w(Tag.SERVICE, "No cached VPN URL — cannot recover")
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
                 }
                 val killSwitch = intent.getBooleanExtra(VpnManager.EXTRA_KILL_SWITCH, true)
                 startForeground(NOTIFICATION_ID, buildNotification("Connecting..."))
@@ -239,8 +249,9 @@ class ShadowsocksService : VpnService() {
     override fun onRevoke() {
         VizoLogger.vpnState(Tag.SERVICE, "VPN revoked by system")
         connectJob?.cancel()
+        serviceError.value = "VPN permission revoked"
+        serviceState.value = VpnState.ERROR
         disconnect()
-        serviceState.value = VpnState.IDLE
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

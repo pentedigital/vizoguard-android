@@ -25,7 +25,7 @@ class LicenseManager(
         val status = store.getLicenseStatus()
         val expires = store.getLicenseExpiry()
         val vpnUrl = store.getVpnAccessUrl()
-        val isValid = key != null && status == "active" && expires != null && !isExpired(expires)
+        val isValid = key != null && (status == "active" || status == "cancelled") && expires != null && !isExpired(expires)
         return LicenseState(key, status, expires, vpnUrl, isValid)
     }
 
@@ -34,7 +34,7 @@ class LicenseManager(
         if (licenseResult.isFailure) return Result.failure(licenseResult.exceptionOrNull()!!)
 
         val license = licenseResult.getOrThrow()
-        store.saveLicenseData(key, license.status, license.expires)
+        store.saveLicenseData(key, license.status, license.expires ?: "")
         store.clearFirstFailureTimestamp()
 
         // Provision VPN key — try create, fall back to get
@@ -64,18 +64,34 @@ class LicenseManager(
         val result = api.activateLicense(key, deviceId)
         if (result.isSuccess) {
             val license = result.getOrThrow()
+            val previousStatus = store.getLicenseStatus()
             store.saveLicenseStatus(license.status)
-            store.saveLicenseExpiry(license.expires)
+            if (license.expires != null) store.saveLicenseExpiry(license.expires)
             store.clearFirstFailureTimestamp()
+            if (previousStatus == "suspended" && license.status == "active") {
+                store.clearVpnAccessUrl()  // Force re-fetch on next connect
+            }
             val state = getCachedState()
             VizoLogger.licenseEvent("validate: ${state.status}")
             return Result.success(state)
         } else {
-            if (store.getFirstFailureTimestamp() == null) {
-                store.saveFirstFailureTimestamp(System.currentTimeMillis())
+            val ex = result.exceptionOrNull()
+            if (ex is ApiException && ex.httpStatus == 403) {
+                // Server explicitly rejected — not a network error, don't start grace period
+                when (ex.status) {
+                    "suspended", "expired" -> {
+                        store.saveLicenseStatus(ex.status)
+                        store.clearVpnAccessUrl()  // Clear stale VPN credentials
+                    }
+                }
+            } else {
+                // Network error — start grace period
+                if (store.getFirstFailureTimestamp() == null) {
+                    store.saveFirstFailureTimestamp(System.currentTimeMillis())
+                }
             }
-            VizoLogger.licenseEvent("validate: failed (${result.exceptionOrNull()?.message})")
-            return Result.failure(result.exceptionOrNull()!!)
+            VizoLogger.licenseEvent("validate: failed (${ex?.message})")
+            return Result.failure(ex!!)
         }
     }
 

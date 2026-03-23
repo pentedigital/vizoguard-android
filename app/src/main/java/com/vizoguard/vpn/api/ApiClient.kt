@@ -14,7 +14,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 
-@Serializable data class LicenseResponse(val valid: Boolean, val status: String, val expires: String)
+@Serializable data class LicenseResponse(val valid: Boolean, val status: String, val expires: String?)
 @Serializable data class VpnResponse(@SerialName("access_url") val accessUrl: String)
 @Serializable data class ErrorResponse(val error: String, val status: String = "")
 @Serializable data class HealthResponse(val status: String)

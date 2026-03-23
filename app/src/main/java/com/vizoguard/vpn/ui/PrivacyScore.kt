@@ -30,7 +30,7 @@ fun PrivacyScore(vpnState: VpnState) {
         isConnected -> 3
         isConnecting -> 2
         isIdle -> 1
-        isError -> 3
+        isError -> 0  // ERROR = not protected, show no bars
         else -> 1
     }
 
