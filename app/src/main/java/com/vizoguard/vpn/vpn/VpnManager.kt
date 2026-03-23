@@ -23,8 +23,10 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
     init {
         scope.launch {
             ShadowsocksService.serviceState.collect { state ->
-                // Map IDLE from service to LICENSED if we have a license (post-disconnect)
-                val mappedState = if (state == VpnState.IDLE && _status.value.state != VpnState.IDLE) {
+                // Map IDLE from service to LICENSED only after a real connection (not on crash/error)
+                val prev = _status.value.state
+                val mappedState = if (state == VpnState.IDLE &&
+                    (prev == VpnState.CONNECTED || prev == VpnState.CONNECTING || prev == VpnState.RECONNECTING)) {
                     VpnState.LICENSED
                 } else {
                     state

@@ -68,8 +68,10 @@ class LicenseManager(
             store.saveLicenseStatus(license.status)
             if (license.expires != null) store.saveLicenseExpiry(license.expires)
             store.clearFirstFailureTimestamp()
-            if (previousStatus == "suspended" && license.status == "active") {
-                store.clearVpnAccessUrl()  // Force re-fetch on next connect
+            // Clear stale VPN URL on status recovery or expiry
+            if ((previousStatus == "suspended" && license.status == "active") ||
+                license.status == "expired" || license.status == "suspended") {
+                store.clearVpnAccessUrl()
             }
             val state = getCachedState()
             VizoLogger.licenseEvent("validate: ${state.status}")
