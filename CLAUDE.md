@@ -34,6 +34,20 @@ Emulator:
 adb shell am start -n com.vizoguard.vpn/.MainActivity
 ```
 
+## Architectural Rules
+- `connect()` validates license with server before every VPN connection — cached credentials never trusted
+- VPN access URL cleared from SecureStore on suspension/expiry via `clearVpnAccessUrl()`
+- `getCachedState().isValid` accepts both `"active"` and `"cancelled"` status
+- `LicenseResponse.expires` is nullable (`String?`) — server may send null
+- Grace period (`firstFailureTimestamp`) only starts on network errors, NOT on 403 server rejections
+- `onRevoke()` emits `VpnState.ERROR` not `IDLE` — user sees error, not ready state
+- PrivacyScore shows 0 bars on ERROR state (not 3)
+- `pendingConfig` null recovery: reads VPN URL from SecureStore after process kill
+- BootReceiver: `startForegroundService` wrapped in try-catch (Android 12+ crash guard)
+- No `foregroundServiceType="specialUse"` — VPN services exempt, removed for Play Store
+- `cancelAndJoin()` used in connect() to prevent native race with old coroutine
+- VizoLogger `sanitize()` redacts license keys, ss:// URLs, and IP addresses
+
 ## Gotchas
 
 - **`libs/tun2socks.aar`** is a local file dependency, not from Maven. If it's missing the build fails silently at link time. Do not delete `libs/`.
