@@ -29,6 +29,13 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
             .apply()
     }
 
+    /** Atomic write of status + expiry — for validation updates without changing key */
+    fun saveValidation(status: String, expiry: String?) {
+        val editor = prefs.edit().putString(KEY_STATUS, status)
+        if (expiry != null) editor.putString(KEY_EXPIRY, expiry)
+        editor.apply()
+    }
+
     fun saveFirstFailureTimestamp(ts: Long) = prefs.edit().putLong(KEY_FIRST_FAIL, ts).apply()
     fun getFirstFailureTimestamp(): Long? {
         return if (prefs.contains(KEY_FIRST_FAIL)) prefs.getLong(KEY_FIRST_FAIL, 0) else null

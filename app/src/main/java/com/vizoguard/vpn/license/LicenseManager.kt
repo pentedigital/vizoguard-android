@@ -65,8 +65,7 @@ class LicenseManager(
         if (result.isSuccess) {
             val license = result.getOrThrow()
             val previousStatus = store.getLicenseStatus()
-            store.saveLicenseStatus(license.status)
-            if (license.expires != null) store.saveLicenseExpiry(license.expires)
+            store.saveValidation(license.status, license.expires)
             store.clearFirstFailureTimestamp()
             // Clear stale VPN URL on status recovery or expiry
             if ((previousStatus == "suspended" && license.status == "active") ||

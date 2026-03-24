@@ -8,6 +8,7 @@ import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.ShadowsocksService
+import com.vizoguard.vpn.worker.LicenseCheckWorker
 import java.time.Instant
 
 class BootReceiver : BroadcastReceiver() {
@@ -15,13 +16,17 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val store = SecureStore.create(context)
         VizoLogger.init(context)
+
+        // Ensure license check worker is scheduled after every boot
+        LicenseCheckWorker.schedule(context)
+
         VizoLogger.systemEvent("Boot received, autoConnect=${store.getAutoConnect()}")
         val accessUrl = store.getVpnAccessUrl()
         if (store.getAutoConnect() && accessUrl != null) {
             // Validate cached license before starting VPN service
             val status = store.getLicenseStatus()
-            if (status != "active") {
-                VizoLogger.systemEvent("Boot auto-connect skipped: license status is '${status ?: "null"}', not active")
+            if (status != "active" && status != "cancelled") {
+                VizoLogger.systemEvent("Boot auto-connect skipped: license status is '${status ?: "null"}', not active/cancelled")
                 return
             }
             val expiryStr = store.getLicenseExpiry()
