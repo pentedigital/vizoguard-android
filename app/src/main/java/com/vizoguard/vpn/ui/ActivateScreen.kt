@@ -1,6 +1,9 @@
 package com.vizoguard.vpn.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -34,6 +39,7 @@ fun ActivateScreen(
     var keyInput by remember { mutableStateOf("") }
     var qrError by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     val qrLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { scanned ->
@@ -49,6 +55,25 @@ fun ActivateScreen(
             } else {
                 qrError = "This QR code doesn't contain a valid Vizoguard license key"
             }
+        }
+    }
+
+    val launchQrScanner = {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setPrompt("Scan your Vizoguard QR code")
+            setCameraId(0)
+        }
+        qrLauncher.launch(options)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchQrScanner()
+        } else {
+            qrError = "Camera permission is required to scan QR codes"
         }
     }
 
@@ -141,12 +166,13 @@ fun ActivateScreen(
         // QR scan button
         OutlinedButton(
             onClick = {
-                val options = ScanOptions().apply {
-                    setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                    setPrompt("Scan your Vizoguard QR code")
-                    setCameraId(0)
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED
+                ) {
+                    launchQrScanner()
+                } else {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 }
-                qrLauncher.launch(options)
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Scan QR Code", fontSize = 13.sp) }

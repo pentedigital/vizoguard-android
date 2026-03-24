@@ -131,13 +131,13 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
     }
 
-    private var lastDeepLinkTime = 0L
+    private var lastDeepLinkUri: String? = null
 
     private fun handleDeepLink(intent: Intent?) {
-        val now = System.currentTimeMillis()
-        if (now - lastDeepLinkTime < 2000) return
-        lastDeepLinkTime = now
         val uri = intent?.data ?: return
+        val uriString = uri.toString()
+        if (uriString == lastDeepLinkUri) return
+        lastDeepLinkUri = uriString
         if (uri.scheme == "vizoguard-vpn" && uri.host == "activate") {
             val key = uri.getQueryParameter("key")
             if (key != null && LicenseManager.isValidKeyFormat(key)) {

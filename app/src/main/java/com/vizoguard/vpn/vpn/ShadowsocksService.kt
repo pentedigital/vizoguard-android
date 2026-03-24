@@ -59,6 +59,12 @@ class ShadowsocksService : VpnService() {
 
         when (intent.action) {
             VpnManager.ACTION_CONNECT -> {
+                // If already connected or connecting, ignore duplicate start commands
+                val currentState = serviceState.value
+                if (currentState == VpnState.CONNECTED || currentState == VpnState.CONNECTING) {
+                    VizoLogger.d(Tag.SERVICE, "Duplicate ACTION_CONNECT ignored — already $currentState")
+                    return START_STICKY
+                }
                 var config = VpnManager.pendingConfig.getAndSet(null)
                 if (config == null) {
                     VizoLogger.w(Tag.SERVICE, "pendingConfig null — attempting recovery from store")
@@ -66,6 +72,7 @@ class ShadowsocksService : VpnService() {
                     val vpnUrl = store.getVpnAccessUrl()
                     if (vpnUrl != null) {
                         config = VpnManager.parseShadowsocksUrl(vpnUrl)
+                        VizoLogger.d(Tag.SERVICE, "Recovered config from SecureStore")
                     }
                     if (config == null) {
                         VizoLogger.w(Tag.SERVICE, "No cached VPN URL — cannot recover")
@@ -259,11 +266,11 @@ class ShadowsocksService : VpnService() {
     override fun onDestroy() {
         connectJob?.cancel()
         disconnect()
-        // Only reset to IDLE if not already in ERROR (e.g., from onRevoke)
+        // Only reset to IDLE and clear error if not already in ERROR (e.g., from onRevoke)
         if (serviceState.value != VpnState.ERROR) {
             serviceState.value = VpnState.IDLE
+            serviceError.value = null
         }
-        serviceError.value = null
         serviceScope.cancel()
         super.onDestroy()
     }
