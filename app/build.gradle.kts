@@ -32,6 +32,10 @@ android {
     kotlinOptions { jvmTarget = "11" }
     buildFeatures { compose = true; buildConfig = true }
     testOptions { unitTests.isReturnDefaultValues = true }
+    lint {
+        // VPN services are exempt from foregroundServiceType per Android platform rules
+        disable += "ForegroundServiceType"
+    }
 }
 
 dependencies {
