@@ -115,10 +115,18 @@ class AppState(app: Application) : AndroidViewModel(app) {
                         // Server explicitly rejected — stop VPN
                         vpnManager.stopVpn()
                         _errorMessage.value = "License validation failed"
-                    } else {
-                        // Network error — leave VPN state unchanged
-                        _errorMessage.value = "Can't reach server. Check your internet connection."
+                        return@launch
                     }
+                    // Network error — try offline grace period before giving up
+                    if (licenseManager.canConnectOffline()) {
+                        val state = licenseManager.getCachedState()
+                        val accessUrl = state.vpnAccessUrl
+                        if (accessUrl != null) {
+                            vpnManager.startVpn(accessUrl)
+                            return@launch
+                        }
+                    }
+                    _errorMessage.value = "Can't reach server. Check your internet connection."
                     return@launch
                 }
                 val state = licenseManager.getCachedState()
@@ -132,7 +140,7 @@ class AppState(app: Application) : AndroidViewModel(app) {
                     _errorMessage.value = "No VPN key available"
                     return@launch
                 }
-                vpnManager.startVpn(accessUrl, store.getKillSwitch())
+                vpnManager.startVpn(accessUrl)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Connection failed"
             }

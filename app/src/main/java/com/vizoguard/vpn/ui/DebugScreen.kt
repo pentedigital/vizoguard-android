@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.ui.theme.*
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnStatus
@@ -27,7 +28,7 @@ fun DebugScreen(
     licenseKey: String?,
     licenseStatus: String?,
     licenseExpiry: String?,
-    vpnAccessUrl: String?,
+    vpnAccessUrlLen: Int?,
     onExportLogs: () -> Unit,
     onClearLogs: () -> Unit,
     onDismiss: () -> Unit
@@ -68,10 +69,10 @@ fun DebugScreen(
         // State info
         DebugRow("VPN State", vpnStatus.state.name)
         DebugRow("Error", vpnStatus.errorMessage ?: "none")
-        DebugRow("License", licenseKey?.take(9)?.plus("...") ?: "none")
+        DebugRow("License", licenseKey?.let { LicenseManager.maskKey(it) } ?: "none")
         DebugRow("Status", licenseStatus ?: "none")
         DebugRow("Expires", licenseExpiry?.take(10) ?: "none")
-        DebugRow("VPN URL", if (vpnAccessUrl != null) "cached (${vpnAccessUrl.length} chars)" else "none")
+        DebugRow("VPN URL", if (vpnAccessUrlLen != null) "cached ($vpnAccessUrlLen chars)" else "none")
 
         Spacer(Modifier.height(12.dp))
 

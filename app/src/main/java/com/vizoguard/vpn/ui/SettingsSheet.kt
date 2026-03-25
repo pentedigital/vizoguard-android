@@ -18,12 +18,11 @@ import com.vizoguard.vpn.ui.theme.*
 @Composable
 fun SettingsSheet(
     autoConnect: Boolean,
-    killSwitch: Boolean,
     notifications: Boolean,
     licenseKey: String?,
     expiresAt: String?,
     onAutoConnectChange: (Boolean) -> Unit,
-    onKillSwitchChange: (Boolean) -> Unit,
+    onOpenKillSwitch: () -> Unit,
     onNotificationsChange: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onOpenDebug: (() -> Unit)? = null
@@ -64,7 +63,7 @@ fun SettingsSheet(
 
         SettingRow("Auto-connect", autoConnect, onAutoConnectChange)
         PremiumDivider()
-        SettingRow("Kill switch", killSwitch, onKillSwitchChange)
+        KillSwitchRow(onOpenKillSwitch)
         PremiumDivider()
         SettingRow("Notifications", notifications, onNotificationsChange)
         PremiumDivider()
@@ -103,6 +102,25 @@ private fun PremiumDivider() {
         thickness = 0.5.dp,
         modifier = Modifier.padding(vertical = 2.dp)
     )
+}
+
+@Composable
+private fun KillSwitchRow(onOpen: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Kill switch", color = TextPrimary, fontSize = 15.sp)
+            Text(
+                "Opens Android VPN settings",
+                color = TextSecondary,
+                fontSize = 11.sp
+            )
+        }
+        Text("→", color = Accent, fontSize = 18.sp)
+    }
 }
 
 @Composable

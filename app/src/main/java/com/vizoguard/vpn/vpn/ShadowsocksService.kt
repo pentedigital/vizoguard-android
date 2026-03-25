@@ -28,7 +28,7 @@ class ShadowsocksService : VpnService() {
 
     private data class ConnectParams(
         val host: String, val port: Int, val method: String,
-        val password: String, val killSwitch: Boolean
+        val password: String
     )
 
     companion object {
@@ -61,7 +61,7 @@ class ShadowsocksService : VpnService() {
             VpnManager.ACTION_CONNECT -> {
                 // If already connected or connecting, ignore duplicate start commands
                 val currentState = serviceState.value
-                if (currentState == VpnState.CONNECTED || currentState == VpnState.CONNECTING) {
+                if (currentState == VpnState.CONNECTED || currentState == VpnState.CONNECTING || currentState == VpnState.RECONNECTING) {
                     VizoLogger.d(Tag.SERVICE, "Duplicate ACTION_CONNECT ignored — already $currentState")
                     return START_STICKY
                 }
@@ -80,9 +80,8 @@ class ShadowsocksService : VpnService() {
                         return START_NOT_STICKY
                     }
                 }
-                val killSwitch = intent.getBooleanExtra(VpnManager.EXTRA_KILL_SWITCH, true)
                 startForeground(NOTIFICATION_ID, buildNotification("Connecting..."))
-                connect(config.host, config.port, config.method, config.password, killSwitch)
+                connect(config.host, config.port, config.method, config.password)
             }
             VpnManager.ACTION_DISCONNECT -> {
                 connectJob?.cancel()
@@ -95,8 +94,8 @@ class ShadowsocksService : VpnService() {
         return START_STICKY
     }
 
-    private fun connect(host: String, port: Int, method: String, password: String, killSwitch: Boolean) {
-        lastConnectParams = ConnectParams(host, port, method, password, killSwitch)
+    private fun connect(host: String, port: Int, method: String, password: String) {
+        lastConnectParams = ConnectParams(host, port, method, password)
         serviceError.value = null
 
         val redactedHost = if (host.length > 4) "${host.take(4)}***" else "***"
@@ -108,7 +107,7 @@ class ShadowsocksService : VpnService() {
             disconnect()
 
             // Builder.establish() must run on the main thread (VpnService context-affine)
-            val fd = withContext(Dispatchers.Main) { establishTun(killSwitch) }
+            val fd = withContext(Dispatchers.Main) { establishTun() }
             if (fd == null) {
                 VizoLogger.e(Tag.SERVICE, "VPN permission not granted")
                 serviceError.value = "VPN permission not granted"
@@ -133,12 +132,12 @@ class ShadowsocksService : VpnService() {
             } catch (e: Exception) {
                 VizoLogger.e(Tag.SERVICE, "connect failed", e)
                 // Attempt auto-reconnect
-                reconnectLoop(host, port, method, password, killSwitch)
+                reconnectLoop(host, port, method, password)
             }
         }
     }
 
-    private fun establishTun(killSwitch: Boolean): ParcelFileDescriptor? {
+    private fun establishTun(): ParcelFileDescriptor? {
         val builder = Builder()
             .setSession("Vizoguard VPN")
             .addAddress("10.0.0.2", 32)
@@ -150,10 +149,6 @@ class ShadowsocksService : VpnService() {
             .addDnsServer("1.1.1.1")
             .addDnsServer("8.8.8.8")
             .setMtu(1500)
-
-        // Kill-switch: Android requires system-level setting for true traffic leak prevention.
-        // Settings > Network > VPN > Vizoguard > "Block connections without VPN"
-        // No in-app API can enforce this — the toggle is informational only.
 
         val startMs = System.currentTimeMillis()
         val fd = builder.establish()
@@ -184,7 +179,7 @@ class ShadowsocksService : VpnService() {
     }
 
     private suspend fun reconnectLoop(
-        host: String, port: Int, method: String, password: String, killSwitch: Boolean
+        host: String, port: Int, method: String, password: String
     ) {
         for (attempt in 1..MAX_RECONNECT_ATTEMPTS) {
             serviceState.value = VpnState.RECONNECTING
@@ -199,7 +194,7 @@ class ShadowsocksService : VpnService() {
 
             // Tear down old tunnel, re-establish TUN
             withContext(NonCancellable) { disconnect() }
-            val fd = withContext(Dispatchers.Main) { establishTun(killSwitch) }
+            val fd = withContext(Dispatchers.Main) { establishTun() }
             tunFd = fd  // Set immediately so onDestroy can close it
             if (fd == null) {
                 VizoLogger.e(Tag.SERVICE, "reconnect: VPN permission lost")

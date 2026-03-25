@@ -10,11 +10,11 @@
     <!-- Pin vizoguard.com API certificate -->
     <domain-config>
         <domain includeSubdomains="true">vizoguard.com</domain>
-        <pin-set expiration="2028-01-01">
-            <!-- Primary: Let's Encrypt ISRG Root X1 -->
-            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
-            <!-- Backup: Let's Encrypt ISRG Root X2 -->
-            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+        <pin-set expiration="2027-01-01">
+            <!-- Primary: vizoguard.com leaf certificate SPKI -->
+            <pin digest="SHA-256">HDjm1NFkWIib39IMTmRtWwK15ZlN2mKz0sFuD8PFuA8=</pin>
+            <!-- Backup: Let's Encrypt R10/R11 intermediate -->
+            <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
         </pin-set>
     </domain-config>
 </network-security-config>

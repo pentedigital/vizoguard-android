@@ -47,7 +47,6 @@ class BootReceiver : BroadcastReceiver() {
             VpnManager.pendingConfig.set(config)
             val vpnIntent = Intent(context, ShadowsocksService::class.java).apply {
                 action = VpnManager.ACTION_CONNECT
-                putExtra(VpnManager.EXTRA_KILL_SWITCH, store.getKillSwitch())
             }
             try {
                 context.startForegroundService(vpnIntent)

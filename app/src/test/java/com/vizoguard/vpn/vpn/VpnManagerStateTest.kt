@@ -89,7 +89,7 @@ class VpnManagerStateTest {
         // This will try to start the service (no-op in unit test due to mocked context)
         // but we can check the status was set before the intent
         val url = "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpwYXNzd29yZA==@1.2.3.4:8388/?outline=1"
-        manager.startVpn(url, true)
+        manager.startVpn(url)
         assertEquals(VpnState.CONNECTING, manager.status.value.state)
         assertEquals("1.2.3.4", manager.status.value.serverHost)
         assertEquals("chacha20-ietf-poly1305", manager.status.value.encryptionMethod)
@@ -98,7 +98,7 @@ class VpnManagerStateTest {
     @Test
     fun `startVpn sets ERROR for invalid URL`() {
         val manager = VpnManager(mockContext(), scope)
-        manager.startVpn("invalid-url", true)
+        manager.startVpn("invalid-url")
         assertEquals(VpnState.ERROR, manager.status.value.state)
         assertEquals("Invalid VPN configuration", manager.status.value.errorMessage)
     }

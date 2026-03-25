@@ -55,7 +55,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
         )
     }
 
-    fun startVpn(accessUrl: String, killSwitch: Boolean) {
+    fun startVpn(accessUrl: String) {
         val config = parseShadowsocksUrl(accessUrl) ?: run {
             updateState(VpnState.ERROR, "Invalid VPN configuration")
             return
@@ -79,7 +79,6 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
         }
         val intent = Intent(context, ShadowsocksService::class.java).apply {
             action = ACTION_CONNECT
-            putExtra(EXTRA_KILL_SWITCH, killSwitch)
         }
         context.startForegroundService(intent)
     }
@@ -109,8 +108,6 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
     companion object {
         const val ACTION_CONNECT = "com.vizoguard.vpn.CONNECT"
         const val ACTION_DISCONNECT = "com.vizoguard.vpn.DISCONNECT"
-        const val EXTRA_KILL_SWITCH = "kill_switch"
-
         /** In-process config handoff — atomic to prevent race between VpnManager and BootReceiver */
         val pendingConfig = AtomicReference<ShadowsocksConfig?>(null)
 

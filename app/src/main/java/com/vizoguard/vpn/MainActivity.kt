@@ -84,18 +84,20 @@ class MainActivity : ComponentActivity() {
 
                         if (showSettings) {
                             var autoConnect by remember { mutableStateOf(appState.getStore().getAutoConnect()) }
-                            var killSwitch by remember { mutableStateOf(appState.getStore().getKillSwitch()) }
                             var notifications by remember { mutableStateOf(appState.getStore().getNotifications()) }
 
                             ModalBottomSheet(onDismissRequest = { showSettings = false }) {
                                 SettingsSheet(
                                     autoConnect = autoConnect,
-                                    killSwitch = killSwitch,
                                     notifications = notifications,
                                     licenseKey = store.key,
                                     expiresAt = store.expires,
                                     onAutoConnectChange = { appState.getStore().saveAutoConnect(it); autoConnect = it },
-                                    onKillSwitchChange = { appState.getStore().saveKillSwitch(it); killSwitch = it },
+                                    onOpenKillSwitch = {
+                                        try {
+                                            startActivity(android.content.Intent(android.provider.Settings.ACTION_VPN_SETTINGS))
+                                        } catch (_: Exception) {}
+                                    },
                                     onNotificationsChange = { appState.getStore().saveNotifications(it); notifications = it },
                                     onSignOut = { showSettings = false; appState.signOut() },
                                     onOpenDebug = if (BuildConfig.DEBUG) {{ showSettings = false; showDebug = true }} else null
@@ -109,7 +111,7 @@ class MainActivity : ComponentActivity() {
                                 licenseKey = store.key,
                                 licenseStatus = store.status,
                                 licenseExpiry = store.expires,
-                                vpnAccessUrl = store.vpnAccessUrl,
+                                vpnAccessUrlLen = store.vpnAccessUrl?.length,
                                 onExportLogs = {
                                     val shareIntent = LogExporter.exportLogs(this@MainActivity)
                                     if (shareIntent != null) startActivity(Intent.createChooser(shareIntent, "Share Logs"))

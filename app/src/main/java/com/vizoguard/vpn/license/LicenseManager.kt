@@ -92,7 +92,7 @@ class LicenseManager(
                 }
             }
             VizoLogger.licenseEvent("validate: failed (${ex?.message})")
-            return Result.failure(ex!!)
+            return Result.failure(ex ?: Exception("Unknown validation failure"))
         }
     }
 
