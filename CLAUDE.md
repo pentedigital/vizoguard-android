@@ -7,6 +7,10 @@ Android VPN client using Shadowsocks (tun2socks). Kotlin + Jetpack Compose + Mat
 JAVA_HOME **must** be set to Android Studio's bundled JBR — system Java will not work.
 
 ```bash
+# VPS (this server — no Android Studio)
+export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+# SDK at /opt/android-sdk, local.properties: sdk.dir=/opt/android-sdk
+
 # Windows
 export JAVA_HOME="C:/Program Files/Android/Android Studio/jbr"
 export ANDROID_HOME="$HOME/AppData/Local/Android/Sdk"
@@ -36,6 +40,7 @@ adb shell am start -n com.vizoguard.vpn/.MainActivity
 
 ## Architectural Rules
 - `connect()` validates license with server before every VPN connection — cached credentials never trusted
+- `connect()` falls back to `canConnectOffline()` on network errors — allows VPN with cached credentials during grace period
 - VPN access URL cleared from SecureStore on suspension/expiry via `clearVpnAccessUrl()`
 - `getCachedState().isValid` accepts both `"active"` and `"cancelled"` status
 - `LicenseResponse.expires` is nullable (`String?`) — server may send null
@@ -46,6 +51,10 @@ adb shell am start -n com.vizoguard.vpn/.MainActivity
 - BootReceiver: `startForegroundService` wrapped in try-catch (Android 12+ crash guard)
 - No `foregroundServiceType="specialUse"` — VPN services exempt, removed for Play Store
 - `cancelAndJoin()` used in connect() to prevent native race with old coroutine
+- `RECONNECTING` state guarded in `onStartCommand` duplicate-start check (alongside CONNECTED/CONNECTING)
+- Kill switch opens Android system VPN settings (`ACTION_VPN_SETTINGS`) — no in-app toggle (Android requires system-level enforcement)
+- Certificate pinning: leaf cert SPKI + R10/R11 intermediate (not root CA) — must update on cert renewal, use `/cert-check`
+- DebugScreen uses `maskKey()` for license key and receives URL length (not raw URL)
 - VizoLogger `sanitize()` redacts license keys, ss:// URLs, and IP addresses
 
 ## Gotchas
