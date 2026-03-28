@@ -105,7 +105,15 @@ All source under `app/src/main/java/com/vizoguard/vpn/`:
 - Commit style: conventional commits (`feat:`, `fix:`, `chore:`)
 - GitHub CLI: `gh` installed, authenticated as `pentedigital`
 
+## Distribution
+- APK hosted at `vizoguard.com/downloads/Vizoguard-latest.apk` (nginx serves from `/var/www/vizoguard/downloads/`)
+- `download.html` links directly to APK with sideloading instructions + Outline fallback
+- `thank-you.html` detects Android via UA, shows APK download + intent QR code
+- Deep link: `vizoguard-vpn://activate?key=VIZO-XXXX` — auto-activates license on install
+- Intent URL fallback: if app not installed, Android falls back to APK download
+- Deploy new APK: use `/android-release` skill (builds, copies to downloads, verifies)
+
 ## Claude Automations
-- **Skills**: `/build-test`, `/deploy-emulator`, `/run-tests`, `/release-apk`, `/gen-test`, `/api-check`
+- **Skills**: `/build-test`, `/deploy-emulator`, `/run-tests`, `/release-apk`, `/android-release`, `/gen-test`, `/api-check`
 - **Subagents**: `security-reviewer`, `android-reviewer`, `test-coverage-analyzer`, `proguard-checker`
 - **Hooks**: Credential/key file edit guard (PreToolUse), tun2socks.aar deletion guard (PreToolUse), related test suggestion on source edit (PostToolUse), lint suggestion on Kotlin edit (PostToolUse)
