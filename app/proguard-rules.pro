@@ -29,9 +29,8 @@
 # kotlinx.serialization generated serializers
 -keepclassmembers class **$$serializer { *; }
 
-# tun2socks + shadowsocks native bridge (JNI)
--keep class tun2socks.** { *; }
--keep class shadowsocks.** { *; }
+# Go mobile runtime (libbox JNI bridge)
+-keep class go.** { *; }
 
 # sing-box libbox (obfuscated VPN transport)
 -keep class io.nekohasekai.libbox.** { *; }

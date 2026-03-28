@@ -65,11 +65,8 @@ dependencies {
     // QR scanning (GMS-free)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // VPN tunnel (Outline tun2socks) — will be replaced by libbox
-    implementation(files("../libs/tun2socks.aar"))
-
-    // Obfuscated VPN transport (sing-box libbox) — ready, pending ShadowsocksService migration
-    // implementation(files("../libs/libbox.aar"))  // TODO: uncomment after tun2socks→libbox migration
+    // VPN transport — sing-box libbox (Shadowsocks direct + VLESS obfuscated)
+    implementation(files("../libs/libbox.aar"))
 
     // Testing
     testImplementation("junit:junit:4.13.2")
