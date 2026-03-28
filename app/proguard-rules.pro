@@ -32,3 +32,7 @@
 # tun2socks + shadowsocks native bridge (JNI)
 -keep class tun2socks.** { *; }
 -keep class shadowsocks.** { *; }
+
+# sing-box libbox (obfuscated VPN transport)
+-keep class io.nekohasekai.libbox.** { *; }
+-keep interface io.nekohasekai.libbox.** { *; }
