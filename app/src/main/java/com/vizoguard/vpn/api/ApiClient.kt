@@ -19,6 +19,8 @@ import java.io.IOException
 @Serializable data class ErrorResponse(val error: String, val status: String = "")
 @Serializable data class HealthResponse(val status: String)
 @Serializable data class LicenseRequest(val key: String, @SerialName("device_id") val deviceId: String)
+@Serializable data class VlessResponse(val uuid: String)
+@Serializable data class VlessRequest(val key: String, @SerialName("device_id") val deviceId: String)
 
 class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
 
@@ -84,6 +86,21 @@ class ApiClient(private val baseUrl: String = "https://vizoguard.com/api") {
         return executeWithRetry("/vpn/status") {
             val response = client.get("$baseUrl/vpn/status")
             Result.success(parseHealthResponse(response.bodyAsText()))
+        }
+    }
+
+    suspend fun provisionVlessUuid(key: String, deviceId: String): Result<VlessResponse> {
+        return executeWithRetry("/vpn/vless") {
+            val response = client.post("$baseUrl/vpn/vless") {
+                contentType(ContentType.Application.Json)
+                setBody(json.encodeToString(VlessRequest(key, deviceId)))
+            }
+            if (response.status.isSuccess()) {
+                Result.success(json.decodeFromString<VlessResponse>(response.bodyAsText()))
+            } else {
+                val err = parseErrorResponse(response.bodyAsText())
+                Result.failure(ApiException(response.status.value, err.error, err.status))
+            }
         }
     }
 

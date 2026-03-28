@@ -54,6 +54,22 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
     fun saveNotifications(enabled: Boolean) = prefs.edit().putBoolean(KEY_NOTIFICATIONS, enabled).apply()
     fun getNotifications(): Boolean = prefs.getBoolean(KEY_NOTIFICATIONS, false)
 
+    fun saveVlessUuid(uuid: String) = prefs.edit().putString(KEY_VLESS_UUID, uuid).apply()
+    fun getVlessUuid(): String? = prefs.getString(KEY_VLESS_UUID, null)
+    fun clearVlessUuid() = prefs.edit().remove(KEY_VLESS_UUID).apply()
+
+    fun saveTransportCache(networkKey: String, mode: String) {
+        prefs.edit().putString("transport_cache_$networkKey", mode)
+            .putLong("transport_cache_ts_$networkKey", System.currentTimeMillis())
+            .apply()
+    }
+
+    fun getTransportCache(networkKey: String): String? {
+        val ts = prefs.getLong("transport_cache_ts_$networkKey", 0)
+        if (System.currentTimeMillis() - ts > 7 * 24 * 60 * 60 * 1000L) return null
+        return prefs.getString("transport_cache_$networkKey", null)
+    }
+
     /** Clears license data but preserves device ID and user settings */
     fun clearLicenseData() {
         prefs.edit()
@@ -62,6 +78,7 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
             .remove(KEY_EXPIRY)
             .remove(KEY_STATUS)
             .remove(KEY_FIRST_FAIL)
+            .remove(KEY_VLESS_UUID)
             .apply()
     }
 
@@ -75,6 +92,7 @@ class SecureStore internal constructor(private val prefs: SharedPreferences) {
         private const val KEY_AUTO_CONNECT = "auto_connect"
         private const val KEY_KILL_SWITCH = "kill_switch"
         private const val KEY_NOTIFICATIONS = "notifications"
+        private const val KEY_VLESS_UUID = "vless_uuid"
 
         fun create(context: Context): SecureStore {
             val masterKey = MasterKey.Builder(context)
