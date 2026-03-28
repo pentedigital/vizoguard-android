@@ -1,6 +1,6 @@
 # Vizoguard VPN — Android
 
-Android VPN client using Shadowsocks (tun2socks). Kotlin + Jetpack Compose + Material3.
+Android VPN client using sing-box (libbox v1.11.4). Supports Shadowsocks (direct) and VLESS/WS/TLS (obfuscated) transport with auto-detection. Kotlin + Jetpack Compose + Material3.
 
 ## Build & Test
 
@@ -59,13 +59,13 @@ adb shell am start -n com.vizoguard.vpn/.MainActivity
 
 ## Gotchas
 
-- **`libs/tun2socks.aar`** is a local file dependency, not from Maven. If it's missing the build fails silently at link time. Do not delete `libs/`.
+- **`libs/libbox.aar`** (sing-box v1.11.4) is a local file dependency, not from Maven. If it's missing the build fails silently at link time. Do not delete `libs/`.
 - **AGP + compileSdk 36**: Currently on AGP 8.9.2. Some newer AndroidX libs require matching AGP versions — check compatibility before bumping dependencies.
 - **ProGuard**: Tink (from security-crypto) and Ktor need explicit keep/dontwarn rules — see `app/proguard-rules.pro`. Adding new Ktor features may need new rules.
 - **`testOptions { unitTests.isReturnDefaultValues = true }`** — Android framework methods return defaults (0/null/false) in unit tests instead of throwing. Be aware mocks may hide real issues.
 - **BootReceiver** validates cached license (status + expiry) before starting VPN service on boot — expired/invalid licenses skip auto-connect
 - **VpnManager.connect()** uses `synchronized(connectLock)` to prevent rapid-fire calls from racing on `pendingConfig`
-- **ShadowsocksService** logs a warning if `pendingConfig` is null in `onStartCommand` (race condition diagnostic)
+- **VpnTunnelService** logs a warning if `pendingConfig` is null in `onStartCommand` (race condition diagnostic)
 - **LicenseCheckWorker** checks cached license expiry on network error — if expired, stops VPN instead of retrying for 24h
 - **AppState** auto-connect only fires after server validation confirms license is valid (not from stale cache)
 
@@ -78,7 +78,7 @@ All source under `app/src/main/java/com/vizoguard/vpn/`:
 - `MainActivity.kt` — Single-activity Compose host with deep links
 - `api/ApiClient.kt` — Ktor client, base URL: `https://vizoguard.com/api`
 - `license/` — License validation, EncryptedSharedPreferences (SecureStore), device ID
-- `vpn/` — VPN service (ShadowsocksService), state machine (VpnManager), VpnState enum
+- `vpn/` — VPN service (VpnTunnelService), state machine (VpnManager), ConnectionManager, ConfigBuilder, PlatformInterfaceImpl, VpnState enum
 - `ui/` — Compose screens: Main, Activate, Settings, Debug, Onboarding, EngineView, ModeSelector, PrivacyScore
 - `worker/` — LicenseCheckWorker (24h periodic check)
 - `receiver/` — BootReceiver (auto-connect on boot)
@@ -116,4 +116,4 @@ All source under `app/src/main/java/com/vizoguard/vpn/`:
 ## Claude Automations
 - **Skills**: `/build-test`, `/deploy-emulator`, `/run-tests`, `/release-apk`, `/android-release`, `/gen-test`, `/api-check`
 - **Subagents**: `security-reviewer`, `android-reviewer`, `test-coverage-analyzer`, `proguard-checker`
-- **Hooks**: Credential/key file edit guard (PreToolUse), tun2socks.aar deletion guard (PreToolUse), related test suggestion on source edit (PostToolUse), lint suggestion on Kotlin edit (PostToolUse)
+- **Hooks**: Credential/key file edit guard (PreToolUse), libbox.aar deletion guard (PreToolUse), related test suggestion on source edit (PostToolUse), lint suggestion on Kotlin edit (PostToolUse)
