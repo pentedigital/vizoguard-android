@@ -17,8 +17,8 @@ class VpnManagerStateTest {
     fun setup() {
         scope = TestScope(UnconfinedTestDispatcher())
         // Reset static service state
-        ShadowsocksService.serviceState.value = VpnState.IDLE
-        ShadowsocksService.serviceError.value = null
+        VpnTunnelService.serviceState.value = VpnState.IDLE
+        VpnTunnelService.serviceError.value = null
     }
 
     @Test
@@ -66,7 +66,7 @@ class VpnManagerStateTest {
         manager.updateState(VpnState.LICENSED)
 
         // Simulate service emitting IDLE (e.g., from onDestroy)
-        ShadowsocksService.serviceState.value = VpnState.IDLE
+        VpnTunnelService.serviceState.value = VpnState.IDLE
 
         // Should map to LICENSED since we weren't in IDLE
         assertEquals(VpnState.LICENSED, manager.status.value.state)
@@ -76,40 +76,29 @@ class VpnManagerStateTest {
     fun `collect propagates error message from serviceError`() = runTest {
         val manager = VpnManager(mockContext(), scope)
 
-        ShadowsocksService.serviceError.value = "Connection failed after 5 attempts"
-        ShadowsocksService.serviceState.value = VpnState.ERROR
+        VpnTunnelService.serviceError.value = "Connection failed after 5 attempts"
+        VpnTunnelService.serviceState.value = VpnState.ERROR
 
         assertEquals(VpnState.ERROR, manager.status.value.state)
         assertEquals("Connection failed after 5 attempts", manager.status.value.errorMessage)
     }
 
     @Test
-    fun `startVpn sets CONNECTING with server info`() {
+    fun `startVpn sets CONNECTING state`() {
         val manager = VpnManager(mockContext(), scope)
-        // This will try to start the service (no-op in unit test due to mocked context)
-        // but we can check the status was set before the intent
-        val url = "ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTpwYXNzd29yZA==@1.2.3.4:8388/?outline=1"
-        manager.startVpn(url)
+        // startVpn now takes a JSON config string directly
+        val configJson = """{"log":{"level":"warn"},"outbounds":[{"type":"shadowsocks","tag":"proxy","server":"1.2.3.4","server_port":8388}]}"""
+        manager.startVpn(configJson)
         assertEquals(VpnState.CONNECTING, manager.status.value.state)
-        assertEquals("1.2.3.4", manager.status.value.serverHost)
-        assertEquals("chacha20-ietf-poly1305", manager.status.value.encryptionMethod)
-    }
-
-    @Test
-    fun `startVpn sets ERROR for invalid URL`() {
-        val manager = VpnManager(mockContext(), scope)
-        manager.startVpn("invalid-url")
-        assertEquals(VpnState.ERROR, manager.status.value.state)
-        assertEquals("Invalid VPN configuration", manager.status.value.errorMessage)
     }
 
     @Test
     fun `service IDLE after CONNECTED maps to LICENSED`() {
         val manager = VpnManager(mockContext(), scope)
         // Simulate service going through CONNECTED then back to IDLE
-        ShadowsocksService.serviceState.value = VpnState.CONNECTED
+        VpnTunnelService.serviceState.value = VpnState.CONNECTED
         assertEquals(VpnState.CONNECTED, manager.status.value.state)
-        ShadowsocksService.serviceState.value = VpnState.IDLE
+        VpnTunnelService.serviceState.value = VpnState.IDLE
         // Collector should map IDLE → LICENSED since we were CONNECTED
         assertEquals(VpnState.LICENSED, manager.status.value.state)
     }

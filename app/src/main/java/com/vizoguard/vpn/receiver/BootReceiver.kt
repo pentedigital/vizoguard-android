@@ -7,7 +7,8 @@ import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
 import com.vizoguard.vpn.vpn.VpnManager
-import com.vizoguard.vpn.vpn.ShadowsocksService
+import com.vizoguard.vpn.vpn.ConfigBuilder
+import com.vizoguard.vpn.vpn.VpnTunnelService
 import com.vizoguard.vpn.worker.LicenseCheckWorker
 import java.time.Instant
 
@@ -43,9 +44,10 @@ class BootReceiver : BroadcastReceiver() {
                 }
             }
 
-            val config = VpnManager.parseShadowsocksUrl(accessUrl) ?: return
-            VpnManager.pendingConfig.set(config)
-            val vpnIntent = Intent(context, ShadowsocksService::class.java).apply {
+            val ssConfig = VpnManager.parseShadowsocksUrl(accessUrl) ?: return
+            val configJson = ConfigBuilder.buildShadowsocks(ssConfig)
+            VpnManager.pendingConfig.set(configJson)
+            val vpnIntent = Intent(context, VpnTunnelService::class.java).apply {
                 action = VpnManager.ACTION_CONNECT
             }
             try {

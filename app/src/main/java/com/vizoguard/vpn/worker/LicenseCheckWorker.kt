@@ -8,7 +8,7 @@ import com.vizoguard.vpn.license.DeviceId
 import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.VizoLogger
-import com.vizoguard.vpn.vpn.ShadowsocksService
+import com.vizoguard.vpn.vpn.VpnTunnelService
 import com.vizoguard.vpn.vpn.VpnManager
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -32,7 +32,7 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
                 if (isExpired) {
                     // Both network failed AND cached license expired — stop VPN
                     VizoLogger.systemEvent("License expired (cached) during network error — stopping VPN")
-                    val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
+                    val stopIntent = Intent(applicationContext, VpnTunnelService::class.java).apply {
                         action = VpnManager.ACTION_DISCONNECT
                     }
                     applicationContext.startService(stopIntent)
@@ -48,7 +48,7 @@ class LicenseCheckWorker(context: Context, params: WorkerParameters) : Coroutine
             val state = manager.getCachedState()
             if (!state.isValid) {
                 VizoLogger.systemEvent("License invalid — stopping VPN")
-                val stopIntent = Intent(applicationContext, ShadowsocksService::class.java).apply {
+                val stopIntent = Intent(applicationContext, VpnTunnelService::class.java).apply {
                     action = VpnManager.ACTION_DISCONNECT
                 }
                 applicationContext.startService(stopIntent)

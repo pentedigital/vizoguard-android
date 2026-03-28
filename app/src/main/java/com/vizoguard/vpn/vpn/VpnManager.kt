@@ -22,7 +22,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
 
     init {
         scope.launch {
-            ShadowsocksService.serviceState.collect { state ->
+            VpnTunnelService.serviceState.collect { state ->
                 // Map IDLE from service to LICENSED only after a real connection (not on crash/error)
                 val prev = _status.value.state
                 val mappedState = if (state == VpnState.IDLE &&
@@ -31,7 +31,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
                 } else {
                     state
                 }
-                val errorMsg = if (mappedState == VpnState.ERROR) ShadowsocksService.serviceError.value else null
+                val errorMsg = if (mappedState == VpnState.ERROR) VpnTunnelService.serviceError.value else null
                 updateState(mappedState, errorMsg)
             }
         }
@@ -55,29 +55,16 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
         )
     }
 
-    fun startVpn(accessUrl: String) {
-        val config = parseShadowsocksUrl(accessUrl) ?: run {
-            updateState(VpnState.ERROR, "Invalid VPN configuration")
-            return
-        }
-
+    fun startVpn(configJson: String) {
         synchronized(connectLock) {
-            // Reject rapid-fire connect if already connecting
             if (_status.value.state == VpnState.CONNECTING) {
                 VizoLogger.w(Tag.VPN, "startVpn ignored — already connecting")
                 return
             }
-
-            // Atomic update: set server info and state together to avoid race
-            _status.value = _status.value.copy(
-                state = VpnState.CONNECTING,
-                serverHost = config.host,
-                encryptionMethod = config.method
-            )
-            // Store parsed config in companion for service to read (avoids password in Intent extras)
-            pendingConfig.set(config)
+            _status.value = _status.value.copy(state = VpnState.CONNECTING)
+            pendingConfig.set(configJson)
         }
-        val intent = Intent(context, ShadowsocksService::class.java).apply {
+        val intent = Intent(context, VpnTunnelService::class.java).apply {
             action = ACTION_CONNECT
         }
         context.startForegroundService(intent)
@@ -92,7 +79,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
                 return
             }
         }
-        val intent = Intent(context, ShadowsocksService::class.java).apply {
+        val intent = Intent(context, VpnTunnelService::class.java).apply {
             action = ACTION_DISCONNECT
         }
         context.startService(intent)
@@ -109,7 +96,7 @@ class VpnManager(private val context: Context, private val scope: CoroutineScope
         const val ACTION_CONNECT = "com.vizoguard.vpn.CONNECT"
         const val ACTION_DISCONNECT = "com.vizoguard.vpn.DISCONNECT"
         /** In-process config handoff — atomic to prevent race between VpnManager and BootReceiver */
-        val pendingConfig = AtomicReference<ShadowsocksConfig?>(null)
+        val pendingConfig = AtomicReference<String?>(null)
 
         fun parseShadowsocksUrl(url: String): ShadowsocksConfig? {
             if (!url.startsWith("ss://")) return null

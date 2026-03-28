@@ -9,6 +9,7 @@ import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
+import com.vizoguard.vpn.vpn.ConfigBuilder
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.VpnState
 import kotlinx.coroutines.flow.*
@@ -122,8 +123,11 @@ class AppState(app: Application) : AndroidViewModel(app) {
                         val state = licenseManager.getCachedState()
                         val accessUrl = state.vpnAccessUrl
                         if (accessUrl != null) {
-                            vpnManager.startVpn(accessUrl)
-                            return@launch
+                            val ssConfig = VpnManager.parseShadowsocksUrl(accessUrl)
+                            if (ssConfig != null) {
+                                vpnManager.startVpn(ConfigBuilder.buildShadowsocks(ssConfig))
+                                return@launch
+                            }
                         }
                     }
                     _errorMessage.value = "Can't reach server. Check your internet connection."
@@ -140,7 +144,12 @@ class AppState(app: Application) : AndroidViewModel(app) {
                     _errorMessage.value = "No VPN key available"
                     return@launch
                 }
-                vpnManager.startVpn(accessUrl)
+                val ssConfig = VpnManager.parseShadowsocksUrl(accessUrl)
+                if (ssConfig == null) {
+                    _errorMessage.value = "Invalid VPN configuration"
+                    return@launch
+                }
+                vpnManager.startVpn(ConfigBuilder.buildShadowsocks(ssConfig))
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Connection failed"
             }
