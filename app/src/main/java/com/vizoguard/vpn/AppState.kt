@@ -9,7 +9,9 @@ import com.vizoguard.vpn.license.LicenseManager
 import com.vizoguard.vpn.license.SecureStore
 import com.vizoguard.vpn.util.Tag
 import com.vizoguard.vpn.util.VizoLogger
+import com.vizoguard.vpn.ui.ConnectionMode
 import com.vizoguard.vpn.vpn.ConfigBuilder
+import com.vizoguard.vpn.vpn.ConnectionManager
 import com.vizoguard.vpn.vpn.VpnManager
 import com.vizoguard.vpn.vpn.VpnState
 import kotlinx.coroutines.flow.*
@@ -24,6 +26,7 @@ class AppState(app: Application) : AndroidViewModel(app) {
     private val deviceId = DeviceId.get(store)
     val licenseManager = LicenseManager(store, api, deviceId)
     val vpnManager = VpnManager(app, viewModelScope)
+    val connectionManager = ConnectionManager(store)
 
     private val _screen = MutableStateFlow(Screen.ACTIVATE)
     val screen: StateFlow<Screen> = _screen
@@ -144,12 +147,24 @@ class AppState(app: Application) : AndroidViewModel(app) {
                     _errorMessage.value = "No VPN key available"
                     return@launch
                 }
-                val ssConfig = VpnManager.parseShadowsocksUrl(accessUrl)
-                if (ssConfig == null) {
-                    _errorMessage.value = "Invalid VPN configuration"
-                    return@launch
+                // Provision VLESS UUID (best-effort — fallback to SS-only if fails)
+                var vlessUuid = store.getVlessUuid()
+                if (vlessUuid == null) {
+                    try {
+                        val key = store.getLicenseKey() ?: ""
+                        val result = api.provisionVlessUuid(key, deviceId)
+                        if (result.isSuccess) {
+                            vlessUuid = result.getOrNull()?.uuid
+                            vlessUuid?.let { store.saveVlessUuid(it) }
+                        }
+                    } catch (_: Exception) {
+                        // VLESS unavailable — ConnectionManager will use SS-only
+                    }
                 }
-                vpnManager.startVpn(ConfigBuilder.buildShadowsocks(ssConfig))
+                val configJson = connectionManager.selectTransport(
+                    accessUrl, vlessUuid, ConnectionMode.PRIVACY
+                )
+                vpnManager.startVpn(configJson)
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Connection failed"
             }
